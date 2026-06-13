@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Among Us Enhanced</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
+*{box-sizing:border-box}
+body{margin:0;background:#050505;color:white;font-family:'Nunito',sans-serif;overflow:hidden;user-select:none;touch-action:none}
+canvas{display:block;touch-action:none}
+.overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20}
+.panel{background:rgba(10,12,20,0.97);padding:32px;border-radius:20px;border:2px solid #2e3a4e;pointer-events:auto;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,0.95);backdrop-filter:blur(20px);max-width:95%;max-height:92vh;overflow-y:auto}
+h1{margin-top:0;color:#ff4757;font-size:2.2rem;text-shadow:0 0 30px rgba(255,71,87,0.5);letter-spacing:2px}
+input[type=text]{padding:12px;font-size:14px;border-radius:10px;border:2px solid #2e3a4e;text-align:center;margin-bottom:12px;width:85%;max-width:250px;text-transform:uppercase;background:#181d28;color:white;font-family:'Nunito',sans-serif;font-weight:bold;outline:none;transition:border-color 0.2s;display:block;margin-left:auto;margin-right:auto}
+input[type=text]:focus{border-color:#1dd1a1}
+input[type=password]{padding:12px;font-size:14px;border-radius:10px;border:2px solid #2e3a4e;text-align:center;margin-bottom:12px;width:85%;max-width:250px;background:#181d28;color:white;font-family:'Nunito',sans-serif;font-weight:bold;outline:none;display:block;margin-left:auto;margin-right:auto}
+button{padding:11px 22px;font-size:14px;font-weight:900;background:#1dd1a1;color:white;border:none;border-radius:10px;cursor:pointer;transition:0.18s;margin:4px;text-shadow:1px 1px 3px rgba(0,0,0,0.4)}
+button:hover{transform:scale(1.05);filter:brightness(1.15)}
+.btn-red{background:#ff4757}.btn-orange{background:#ffa502}.btn-purple{background:#a55eea}.btn-blue{background:#5352ed}.btn-gray{background:#747d8c}
+hr{border-color:#1e2535;margin:14px 0}
+
+/* COLOR / HAT PICKER */
+#color-grid{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:12px}
+.color-swatch{width:32px;height:32px;border-radius:8px;cursor:pointer;border:3px solid transparent;transition:0.15s}
+.color-swatch.selected{border-color:#fff;transform:scale(1.2);box-shadow:0 0 10px rgba(255,255,255,0.4)}
+#hat-grid{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px}
+.hat-btn{width:38px;height:38px;border-radius:8px;cursor:pointer;border:2px solid #2e3a4e;background:#181d28;font-size:17px;display:flex;align-items:center;justify-content:center;transition:0.15s}
+.hat-btn.selected{border-color:#ffa502;background:#2a2010}
+
+/* GAME UI */
+#game-ui{position:absolute;top:15px;left:15px;pointer-events:none;display:none;z-index:5;text-shadow:1px 1px 4px black}
+#room-info{font-size:16px;color:#1dd1a1;margin-bottom:3px}
+#player-count{font-size:12px;color:#8892a4;margin-bottom:6px}
+#task-bar-container{width:175px;height:12px;background:rgba(0,0,0,0.7);border:2px solid #fff;border-radius:6px;margin-bottom:6px;overflow:hidden;display:none}
+#task-bar-fill{width:0%;height:100%;background:linear-gradient(90deg,#2ed573,#7bed9f);transition:width 0.4s}
+#sabotage-alert{color:#ff4757;font-size:14px;font-weight:900;display:none;animation:blink 0.7s infinite}
+#role-banner{font-size:12px;margin-top:3px}
+#kill-cd-bar{display:none;width:175px;height:7px;background:rgba(0,0,0,0.5);border:1px solid #ff4757;border-radius:3px;margin-top:4px;overflow:hidden}
+#kill-cd-fill{height:100%;background:#ff4757;transition:width 0.3s;width:100%}
+#host-start-btn{pointer-events:auto;display:none;background:#ffa502;margin-top:8px;font-size:13px;padding:8px 16px}
+#map-label{position:absolute;bottom:15px;left:15px;font-size:12px;color:#4a5568;pointer-events:none;display:none;z-index:5}
+
+/* MINIMAP */
+#minimap-container{position:absolute;top:15px;right:15px;width:130px;height:130px;background:rgba(5,5,10,0.9);border:2px solid #2e3a4e;border-radius:10px;overflow:hidden;display:none;z-index:4;pointer-events:none}
+
+/* PASSIVE CHAT */
+#passive-chat{position:absolute;bottom:20px;left:20px;width:260px;z-index:15;display:none;flex-direction:column;gap:6px}
+#passive-chat-box{height:130px;background:rgba(5,8,15,0.82);border:1px solid #2e3a4e;border-radius:10px;padding:8px;overflow-y:auto;font-size:12px;backdrop-filter:blur(8px)}
+#passive-chat-row{display:flex;gap:5px;pointer-events:auto}
+#passive-chat-input{flex:1;padding:8px;border-radius:7px;border:1px solid #2e3a4e;background:rgba(15,20,35,0.9);color:white;font-size:12px;font-family:'Nunito',sans-serif;outline:none}
+#passive-chat-input:focus{border-color:#1dd1a1}
+#passive-chat-send{padding:8px 12px;font-size:12px;margin:0;border-radius:7px}
+
+/* JOYSTICK */
+#joystick-zone{position:absolute;bottom:0;left:0;width:50%;height:55%;z-index:10;pointer-events:auto;display:none}
+
+/* ACTION BUTTONS */
+#action-container{position:absolute;bottom:20px;right:20px;display:none;gap:8px;z-index:15;flex-wrap:wrap-reverse;justify-content:flex-end;width:190px}
+.action-btn{width:72px;height:72px;border-radius:50%;font-weight:900;font-size:10px;display:none;text-align:center;border:3px solid;color:white;cursor:pointer;pointer-events:auto;transition:0.12s;flex-direction:column;justify-content:center;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,0.6);user-select:none;line-height:1.3}
+.action-btn:active{transform:scale(0.88)}
+#kill-btn{background:rgba(255,71,87,0.78);border-color:#ff4757}
+#report-btn{background:rgba(255,165,2,0.78);border-color:#ffa502}
+#task-btn{background:rgba(46,213,115,0.78);border-color:#2ed573}
+#vent-btn{background:rgba(116,125,140,0.78);border-color:#747d8c}
+#sabotage-btn{background:rgba(165,94,234,0.78);border-color:#a55eea}
+#emergency-btn{background:rgba(192,57,43,0.78);border-color:#c0392b}
+.action-btn.disabled{opacity:0.3;pointer-events:none;background:rgba(30,30,30,0.5)!important;border-color:#333!important}
+
+/* TASK POPUP */
+#minigame-popup{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0d0f16;width:92%;max-width:520px;height:64%;max-height:430px;border:3px solid #2e3a4e;border-radius:18px;z-index:100;pointer-events:auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.9)}
+#task-canvas{width:100%;height:100%;display:block;touch-action:none}
+#close-task-btn{position:absolute;top:10px;right:10px;background:#ff4757;color:white;border:none;padding:8px 12px;border-radius:7px;cursor:pointer;font-weight:bold;z-index:101;font-size:12px}
+
+/* CUTSCENE */
+#cutscene-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:99;pointer-events:auto}
+#cutscene-text{font-size:2.4rem;font-weight:900;color:#ff4757;text-align:center;text-shadow:0 0 30px rgba(255,71,87,0.7);animation:punch 0.5s ease-out forwards}
+#cutscene-sub{font-size:1rem;color:#ced6e0;margin-top:12px;animation:fadeIn 0.8s 0.5s both}
+
+/* VOTING */
+#voting-ui{display:none;background:rgba(5,5,10,0.98)}
+.voting-wrapper{display:flex;flex-direction:column;width:93%;max-width:820px;height:83%;background:#0c0e15;border-radius:20px;border:2px solid #2e3a4e;pointer-events:auto;overflow:hidden;box-shadow:0 15px 40px rgba(0,0,0,0.95)}
+.voting-header{padding:14px 18px;background:rgba(255,71,87,0.07);border-bottom:2px solid #1a2030;display:flex;align-items:center;justify-content:space-between}
+.voting-timer{font-size:1.7rem;font-weight:900;color:#ffa502}
+.voting-body{display:flex;flex:1;overflow:hidden;flex-direction:column}
+.voting-left{flex:1.3;padding:14px;display:flex;flex-direction:column;overflow-y:auto;border-bottom:2px solid #1a2030}
+.vote-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.vote-card{background:#151922;padding:10px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border:2px solid transparent;color:white;font-size:13px;transition:0.15s}
+.vote-card:hover:not(.dead){border-color:#1dd1a1;background:#1a2230}
+.vote-card.selected{border-color:#ff4757;background:#200d10}
+.vote-card.dead{opacity:0.22;pointer-events:none;filter:grayscale(1)}
+.voting-right{flex:1;padding:14px;display:flex;flex-direction:column;background:#090b11}
+#voting-chat-box{flex:1;background:#060709;border-radius:8px;padding:9px;overflow-y:auto;margin-bottom:9px;font-size:12px;border:1px solid #1a1d28}
+.chat-msg{margin-bottom:4px;line-height:1.4}
+.chat-system{color:#5a6272;font-style:italic;font-size:11px}
+.chat-input-row{display:flex;gap:5px}
+#vote-chat-input{flex:1;padding:8px;border-radius:7px;border:1px solid #2e3a4e;background:#111520;color:white;font-size:12px;margin-bottom:0;font-family:'Nunito',sans-serif;outline:none}
+#vote-chat-input:focus{border-color:#1dd1a1}
+
+/* GAME OVER */
+#game-over-ui{display:none;background:rgba(0,0,0,0.93)}
+#winner-text{font-size:2.6rem;margin-bottom:16px;text-align:center;animation:punch 0.6s ease-out}
+#result-list{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:20px}
+.result-player{background:#151922;border-radius:10px;padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:7px;border:2px solid #2e3a4e}
+.result-imposter{border-color:#ff4757;background:#1a080a}
+.result-dead{opacity:0.35}
+
+/* DEV MODE */
+#dev-ui{display:none;background:rgba(0,0,0,0.97)}
+.dev-panel{background:#0a0d14;padding:24px;border-radius:16px;border:2px solid #a55eea;width:96%;max-width:700px;max-height:92vh;overflow-y:auto;pointer-events:auto}
+.dev-panel h2{color:#a55eea;margin-top:0;font-size:1.4rem}
+.dev-section{background:#0f1320;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid #1e2535;text-align:left}
+.dev-section h4{margin:0 0 10px;color:#ffa502;font-size:13px;text-transform:uppercase;letter-spacing:1px}
+.dev-btn-grid{display:flex;flex-wrap:wrap;gap:7px}
+.dev-log{font-family:monospace;font-size:11px;color:#2ed573;background:#060910;padding:10px;border-radius:7px;height:100px;overflow-y:auto;border:1px solid #1a2030;margin-top:8px;white-space:pre-wrap}
+.dev-info{font-size:12px;color:#8892a4;line-height:1.6}
+
+/* SAB MENU */
+#sabotage-menu{display:none;position:absolute;bottom:155px;right:20px;background:#0c0e15;border:2px solid #a55eea;border-radius:12px;padding:12px;z-index:20;pointer-events:auto;min-width:150px}
+
+@keyframes punch{0%{transform:scale(3.5);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes taskDone{0%{filter:brightness(1)}50%{filter:brightness(2.5)}100%{filter:brightness(1)}}
+
+@media(min-width:768px){
+  .voting-body{flex-direction:row}
+  .voting-left{border-bottom:none;border-right:2px solid #1a2030}
+  .action-btn{width:82px;height:82px;font-size:11px}
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="joystick-zone"></div>
+
+<!-- HUD -->
+<div id="game-ui">
+  <div id="room-info"></div>
+  <div id="player-count"></div>
+  <div id="task-bar-container"><div id="task-bar-fill"></div></div>
+  <div id="sabotage-alert">⚠️ 사보타지!</div>
+  <div id="role-banner"></div>
+  <div id="kill-cd-bar"><div id="kill-cd-fill"></div></div>
+  <div id="host-start-panel" style="display:none;pointer-events:auto;margin-top:8px">
+    <div style="font-size:11px;color:#8892a4;margin-bottom:4px">임포스터 인원</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+      <button id="imp-minus" onclick="changeImpCount(-1)" style="padding:4px 10px;font-size:14px;margin:0;background:#2e3a4e;border-radius:6px">−</button>
+      <span id="imp-count-display" style="font-size:18px;font-weight:900;color:#ff4757;min-width:24px;text-align:center">1</span>
+      <button id="imp-plus" onclick="changeImpCount(1)" style="padding:4px 10px;font-size:14px;margin:0;background:#2e3a4e;border-radius:6px">+</button>
+      <span style="font-size:11px;color:#5a6272">/ <span id="imp-max-label">1</span>명 최대</span>
+    </div>
+    <button id="host-start-btn" onclick="hostStartGame()" style="background:#ffa502;font-size:13px;padding:8px 16px">🚀 게임 시작</button>
+  </div>
+</div>
+<div id="map-label"></div>
+
+<div id="minimap-container">
+  <canvas id="minimap-canvas" width="130" height="130"></canvas>
+</div>
+
+<!-- Passive Chat -->
+<div id="passive-chat">
+  <div id="passive-chat-box"></div>
+  <div id="passive-chat-row">
+    <input type="text" id="passive-chat-input" placeholder="채팅..." maxlength="50" onkeydown="if(event.key==='Enter')sendPassiveChat()">
+    <button id="passive-chat-send" onclick="sendPassiveChat()">↑</button>
+  </div>
+</div>
+
+<!-- Cutscene -->
+<div id="cutscene-overlay">
+  <div id="cutscene-text">🚨 DEAD BODY REPORTED</div>
+  <div id="cutscene-sub"></div>
+</div>
+
+<!-- Action Buttons -->
+<div id="action-container">
+  <div id="emergency-btn" class="action-btn" onpointerdown="sendAction('emergency');event.preventDefault()">🔴<br>EMERG<br>[Q]</div>
+  <div id="task-btn" class="action-btn" onpointerdown="performTask();event.preventDefault()">⚙️<br>TASK<br>[E]</div>
+  <div id="vent-btn" class="action-btn" onpointerdown="toggleVent();event.preventDefault()">🕳️<br>VENT<br>[V]</div>
+  <div id="sabotage-btn" class="action-btn" onpointerdown="openSabMenu();event.preventDefault()">💡<br>SAB<br>[G]</div>
+  <div id="report-btn" class="action-btn" onpointerdown="sendAction('report');event.preventDefault()">📢<br>REPORT<br>[R]</div>
+  <div id="kill-btn" class="action-btn" onpointerdown="sendAction('kill');event.preventDefault()">🔪<br>KILL<br>[SPC]</div>
+</div>
+
+<!-- Sabotage menu -->
+<div id="sabotage-menu">
+  <div style="color:#a55eea;font-weight:900;font-size:12px;margin-bottom:8px">⚡ 사보타지</div>
+  <button class="btn-red" style="width:100%;margin-bottom:5px" onclick="sendAction('sabotage_lights');closeSabMenu()">💡 정전</button>
+  <button style="background:#ff6b35;width:100%;margin-bottom:5px" onclick="sendAction('sabotage_reactor');closeSabMenu()">☢️ 원자로</button>
+  <button class="btn-blue" style="width:100%" onclick="sendAction('sabotage_o2');closeSabMenu()">💨 산소누출</button>
+</div>
+
+<!-- Task Popup -->
+<div id="minigame-popup">
+  <button id="close-task-btn" onpointerdown="closeMinigame();event.preventDefault()">✕</button>
+  <canvas id="task-canvas"></canvas>
+</div>
+
+<!-- MENU -->
+<div class="overlay" id="menu-ui">
+  <div class="panel" style="width:96%;max-width:500px">
+    <h1>☠ AMONG US</h1>
+    <!-- DEV MODE BUTTON (hidden, top-right corner) -->
+    <div style="position:relative">
+      <div id="dev-secret-btn" onclick="promptDevMode()" style="position:absolute;top:-60px;right:-20px;width:18px;height:18px;background:transparent;cursor:pointer;border-radius:50%" title=""></div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <div style="flex:1;min-width:190px">
+        <div style="font-size:12px;color:#747d8c;margin-bottom:6px">닉네임</div>
+        <input type="text" id="nickname" placeholder="닉네임" maxlength="8" value="Player">
+        <hr>
+        <button class="btn-red" onclick="createRoom()" style="width:100%;margin-bottom:8px">🏠 방 만들기</button>
+        <input type="text" id="room-code" placeholder="방 코드 5자리">
+        <button class="btn-blue" onclick="joinRoom()" style="width:100%">🚪 입장하기</button>
+        <hr>
+        <button class="btn-purple" onclick="promptDevMode()" style="width:100%;font-size:12px;padding:8px">🛠 개발자 모드</button>
+      </div>
+      <div style="flex:1;min-width:190px">
+        <div style="font-size:12px;color:#747d8c;margin-bottom:6px">캐릭터 커스텀</div>
+        <canvas id="avatar-preview" width="70" height="90" style="display:block;margin:0 auto 10px;border-radius:8px;background:#0d0f16"></canvas>
+        <div style="font-size:11px;color:#555;margin-bottom:5px">색상</div>
+        <div id="color-grid"></div>
+        <div style="font-size:11px;color:#555;margin-bottom:5px;margin-top:5px">모자</div>
+        <div id="hat-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VOTING -->
+<div class="overlay" id="voting-ui">
+  <div class="voting-wrapper">
+    <div class="voting-header">
+      <span style="color:#ff4757;font-weight:900;font-size:1rem">🚨 긴급 재판</span>
+      <span class="voting-timer" id="voting-timer">60</span>
+    </div>
+    <div class="voting-body">
+      <div class="voting-left">
+        <div class="vote-grid" id="vote-grid"></div>
+        <button class="btn-gray" onclick="castVote('SKIP')" style="width:100%;margin-top:10px">🙅 건너뛰기</button>
+      </div>
+      <div class="voting-right">
+        <div id="voting-chat-box"></div>
+        <div class="chat-input-row">
+          <input type="text" id="vote-chat-input" placeholder="의견..." maxlength="60" onkeydown="if(event.key==='Enter')sendVoteChat()" style="text-transform:none">
+          <button onclick="sendVoteChat()" style="padding:8px 12px;margin:0;font-size:12px">전송</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div class="overlay" id="game-over-ui">
+  <div class="panel" style="max-width:580px">
+    <div id="winner-text"></div>
+    <div id="winner-sub" style="color:#ced6e0;font-size:14px;margin-bottom:18px"></div>
+    <div id="result-list"></div>
+    <button onclick="restartToLobby()" class="btn-green" style="background:#1dd1a1">🔄 로비로</button>
+  </div>
+</div>
+
+<!-- DEV MODE -->
+<div class="overlay" id="dev-ui">
+  <div class="dev-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2>🛠 개발자 모드</h2>
+      <button class="btn-gray" onclick="closeDevMode()" style="padding:8px 14px">✕ 닫기</button>
+    </div>
+    <div class="dev-section">
+      <h4>📍 맵 선택</h4>
+      <div class="dev-btn-grid">
+        <button onclick="devSetMap('skeld')" class="btn-blue">더 스케드</button>
+        <button onclick="devSetMap('mira')" style="background:#27ae60">미라 HQ</button>
+        <button onclick="devSetMap('polus')" class="btn-orange">폴러스</button>
+      </div>
+    </div>
+    <div class="dev-section">
+      <h4>👤 역할 테스트</h4>
+      <div class="dev-btn-grid">
+        <button onclick="devSetRole('crewmate')" style="background:#2ed573">크루원</button>
+        <button onclick="devSetRole('imposter')" class="btn-red">임포스터</button>
+        <button onclick="devSetRole('engineer')" class="btn-blue">엔지니어</button>
+        <button onclick="devSetRole('scientist')" class="btn-purple">사이언티스트</button>
+      </div>
+    </div>
+    <div class="dev-section">
+      <h4>⚙️ 업무 테스트</h4>
+      <div class="dev-btn-grid">
+        <button onclick="devOpenTask('wires')">🔧 배선 연결</button>
+        <button onclick="devOpenTask('cardswipe')">💳 카드 스와이프</button>
+        <button onclick="devOpenTask('asteroids')">☄️ 소행성</button>
+        <button onclick="devOpenTask('stars')">⭐ 별 지도</button>
+        <button onclick="devOpenTask('fuel')">⛽ 연료 주입</button>
+        <button onclick="devOpenTask('reactor')">☢️ 원자로 핸드</button>
+      </div>
+    </div>
+    <div class="dev-section">
+      <h4>⚡ 사보타지 테스트</h4>
+      <div class="dev-btn-grid">
+        <button onclick="devSabotage('lights')" class="btn-orange">💡 정전</button>
+        <button onclick="devSabotage('reactor')" class="btn-red">☢️ 원자로</button>
+        <button onclick="devSabotage('o2')" class="btn-blue">💨 산소</button>
+        <button onclick="devFixSab()">✅ 복구</button>
+      </div>
+    </div>
+    <div class="dev-section">
+      <h4>🎭 이벤트 테스트</h4>
+      <div class="dev-btn-grid">
+        <button onclick="devTriggerMeeting()">🚨 긴급 회의</button>
+        <button onclick="devSpawnCorpse()">💀 시체 생성</button>
+        <button onclick="devTeleport()">🌀 랜덤 이동</button>
+        <button onclick="devGameOver('CREWMATE WIN 🎉')">🎉 크루 승리</button>
+        <button onclick="devGameOver('IMPOSTOR WIN 💀')">💀 임포 승리</button>
+        <button onclick="devAddBot()">🤖 봇 추가</button>
+      </div>
+    </div>
+    <div class="dev-section">
+      <h4>📊 현재 상태</h4>
+      <div class="dev-info" id="dev-info-box">로딩중...</div>
+    </div>
+    <div class="dev-section">
+      <h4>📋 로그</h4>
+      <div class="dev-log" id="dev-log"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
+<script>
+// ═══════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════
+const DEV_PASSWORD = 'ADMIN1234';
+const WORLD = 3000;
+const SPD = 5.5;
+const KILL_R = 115;
+const REPORT_R = 160;
+const EMERG_CD = 30;
+const KILL_CD_TIME = 20;
+const VOTE_SECS = 60;
+
+const COLORS=['#c51111','#132ed1','#117f2d','#ed54ba','#ef7d0d','#f5f557','#3f474e','#d6e0f0','#6b2fbb','#71491e','#38fedc','#50ef39','#ff6b9d','#845ec2','#4e8098'];
+const HATS=['','🎩','👒','⛑️','🪖','👑','🎓','🧢','🎅','🐱','🐸','👾','🤡','💀','🌸'];
+
+// ═══════════════════════════════
+//  MAP DEFINITIONS
+// ═══════════════════════════════
+const MAPS = {
+  skeld: {
+    name: 'THE SKELD',
+    color: '#1a2535',
+    rooms:[
+      {name:'CAFETERIA',x:1050,y:900,w:900,h:800},
+      {name:'SECURITY',x:750,y:1450,w:300,h:300},
+      {name:'REACTOR',x:2200,y:2000,w:400,h:650},
+      {name:'NAVIGATION',x:1250,y:2300,w:600,h:320},
+      {name:'STORAGE',x:400,y:2000,w:580,h:520},
+      {name:'MED-BAY',x:100,y:1600,w:370,h:420},
+      {name:'COMMS',x:2600,y:600,w:320,h:420},
+      {name:'WEAPONS',x:1800,y:400,w:350,h:350},
+      {name:'SHIELDS',x:2400,y:1600,w:300,h:400},
+      {name:'ENGINE ROOM',x:100,y:2200,w:280,h:420},
+    ],
+    walls:[
+      {x:0,y:0,w:3000,h:50},{x:0,y:0,w:50,h:3000},{x:0,y:2950,w:3000,h:50},{x:2950,y:0,w:50,h:3000},
+      {x:1000,y:900,w:50,h:900},{x:1950,y:900,w:50,h:900},
+      {x:1000,y:900,w:300,h:50},{x:1700,y:900,w:300,h:50},
+      {x:1000,y:1750,w:1000,h:50},
+      {x:50,y:700,w:600,h:50},{x:600,y:750,w:50,h:500},
+      {x:2250,y:50,w:50,h:1200},{x:2250,y:1500,w:50,h:1000},
+      {x:700,y:1400,w:350,h:50},{x:700,y:1400,w:50,h:400},{x:700,y:1750,w:350,h:50},
+      {x:2400,y:2000,w:50,h:700},{x:2100,y:2000,w:350,h:50},
+      {x:1200,y:2300,w:650,h:50},{x:1200,y:2300,w:50,h:350},{x:1800,y:2300,w:50,h:350},
+      {x:400,y:2000,w:600,h:50},{x:400,y:2000,w:50,h:600},{x:400,y:2550,w:600,h:50},
+      {x:1850,y:400,w:50,h:400},{x:2200,y:400,w:50,h:600},
+    ],
+    tasks:[
+      {id:1,x:180,y:1680,w:150,h:150,name:"🩺 메드베이",type:'wires',color:'rgba(46,213,115,0.18)'},
+      {id:2,x:2640,y:650,w:150,h:150,name:"📡 통신 수리",type:'cardswipe',color:'rgba(52,152,219,0.18)'},
+      {id:3,x:1200,y:1050,w:150,h:150,name:"🍽 카페 배선",type:'wires',color:'rgba(155,89,182,0.18)'},
+      {id:4,x:460,y:2080,w:150,h:150,name:"📦 연료 주입",type:'fuel',color:'rgba(230,126,34,0.18)'},
+      {id:5,x:1330,y:2380,w:150,h:150,name:"🗺 별 지도",type:'stars',color:'rgba(26,188,156,0.18)'},
+      {id:6,x:1870,y:440,w:150,h:150,name:"☄️ 소행성",type:'asteroids',color:'rgba(52,73,94,0.25)',visual:true},
+      {id:7,x:2450,y:1650,w:150,h:150,name:"🛡 쉴드",type:'reactor',color:'rgba(231,76,60,0.18)'},
+      {id:99,x:180,y:220,w:150,h:150,name:"⚡ 정전 복구",type:'wires',color:'rgba(235,94,85,0.28)',isSab:true,sabType:'lights'},
+      {id:98,x:2550,y:2080,w:150,h:150,name:"☢️ 원자로",type:'reactor',color:'rgba(255,107,53,0.28)',isSab:true,sabType:'reactor'},
+      {id:97,x:1330,y:1050,w:150,h:150,name:"💨 산소공급",type:'wires',color:'rgba(83,82,237,0.28)',isSab:true,sabType:'o2'},
+    ],
+    vents:[
+      {id:0,x:320,y:1850,linked:[1,2]},{id:1,x:2750,y:1800,linked:[0,2]},{id:2,x:1480,y:1490,linked:[0,1]},
+    ],
+    spawn:{x:1480,y:1380},
+    emergency:{x:1430,y:1350,w:110,h:110},
+  },
+  mira: {
+    name: 'MIRA HQ',
+    color: '#0d1a12',
+    rooms:[
+      {name:'LAUNCH PAD',x:200,y:2400,w:500,h:400},
+      {name:'CAFETERIA',x:1200,y:2200,w:700,h:500},
+      {name:'REACTOR',x:200,y:1200,w:500,h:500},
+      {name:'LABORATORY',x:1000,y:800,w:600,h:500},
+      {name:'OFFICE',x:1700,y:1400,w:500,h:400},
+      {name:'BALCONY',x:2400,y:1000,w:400,h:350},
+      {name:'COMMS',x:2200,y:1800,w:500,h:400},
+      {name:'GREENHOUSE',x:1000,y:2000,w:500,h:450},
+      {name:'MED-BAY',x:400,y:2000,w:400,h:400},
+      {name:'LOCKER ROOM',x:700,y:1600,w:400,h:400},
+    ],
+    walls:[
+      {x:0,y:0,w:3000,h:50},{x:0,y:0,w:50,h:3000},{x:0,y:2950,w:3000,h:50},{x:2950,y:0,w:50,h:3000},
+      {x:50,y:1100,w:700,h:50},{x:50,y:1700,w:700,h:50},{x:700,y:1100,w:50,h:650},
+      {x:1000,y:750,w:50,h:600},{x:1600,y:750,w:50,h:700},
+      {x:1700,y:1350,w:550,h:50},{x:2200,y:1350,w:50,h:500},{x:1700,y:1800,w:550,h:50},
+      {x:2400,y:950,w:50,h:400},{x:2750,y:950,w:50,h:450},{x:2400,y:1350,w:400,h:50},
+      {x:2200,y:1750,w:550,h:50},{x:2200,y:2200,w:550,h:50},
+      {x:1200,y:2150,w:50,h:600},{x:1900,y:2150,w:50,h:600},
+      {x:1000,y:1950,w:50,h:500},{x:1500,y:1950,w:50,h:500},
+      {x:400,y:1950,w:450,h:50},{x:400,y:2400,w:450,h:50},{x:400,y:1950,w:50,h:500},
+      {x:200,y:2350,w:550,h:50},{x:200,y:2800,w:550,h:50},
+    ],
+    tasks:[
+      {id:1,x:240,y:1280,w:150,h:150,name:"⚛️ 원자로 수리",type:'reactor',color:'rgba(231,76,60,0.18)'},
+      {id:2,x:1050,y:850,w:150,h:150,name:"🔬 실험실",type:'stars',color:'rgba(155,89,182,0.18)'},
+      {id:3,x:1750,y:1430,w:150,h:150,name:"💼 오피스",type:'cardswipe',color:'rgba(52,152,219,0.18)'},
+      {id:4,x:1280,y:2250,w:150,h:150,name:"🌿 온실 배선",type:'wires',color:'rgba(46,213,115,0.18)'},
+      {id:5,x:450,y:2450,w:150,h:150,name:"🚀 발사대",type:'fuel',color:'rgba(230,126,34,0.18)'},
+      {id:6,x:2450,y:1050,w:150,h:150,name:"☄️ 발코니",type:'asteroids',color:'rgba(52,73,94,0.25)',visual:true},
+      {id:99,x:240,y:2050,w:150,h:150,name:"⚡ 정전 복구",type:'wires',color:'rgba(235,94,85,0.28)',isSab:true,sabType:'lights'},
+      {id:98,x:1050,y:1700,w:150,h:150,name:"☢️ 원자로",type:'reactor',color:'rgba(255,107,53,0.28)',isSab:true,sabType:'reactor'},
+      {id:97,x:1750,y:2050,w:150,h:150,name:"💨 산소공급",type:'wires',color:'rgba(83,82,237,0.28)',isSab:true,sabType:'o2'},
+    ],
+    vents:[
+      {id:0,x:350,y:1580,linked:[1,2]},{id:1,x:1820,y:1750,linked:[0,2]},{id:2,x:1200,y:2500,linked:[0,1]},
+    ],
+    spawn:{x:1480,y:2350},
+    emergency:{x:1530,y:2300,w:110,h:110},
+  },
+  polus: {
+    name: 'POLUS',
+    color: '#101822',
+    rooms:[
+      {name:'DROPSHIP',x:200,y:200,w:500,h:400},
+      {name:'OFFICE',x:850,y:200,w:500,h:400},
+      {name:'SECURITY',x:2400,y:200,w:450,h:400},
+      {name:'ELECTRICAL',x:2100,y:700,w:500,h:400},
+      {name:'O2',x:1400,y:900,w:400,h:400},
+      {name:'COMMS',x:750,y:900,w:400,h:400},
+      {name:'WEAPONS',x:2500,y:1300,w:400,h:400},
+      {name:'STORAGE',x:300,y:1600,w:500,h:500},
+      {name:'LABORATORY',x:1200,y:1700,w:600,h:500},
+      {name:'SPECIMEN',x:2200,y:2000,w:500,h:600},
+      {name:'DRILL',x:700,y:2300,w:400,h:400},
+      {name:'BOILER',x:1900,y:1200,w:400,h:350},
+    ],
+    walls:[
+      {x:0,y:0,w:3000,h:50},{x:0,y:0,w:50,h:3000},{x:0,y:2950,w:3000,h:50},{x:2950,y:0,w:50,h:3000},
+      {x:200,y:200,w:50,h:450},{x:200,y:600,w:700,h:50},{x:700,y:200,w:50,h:450},
+      {x:850,y:200,w:50,h:450},{x:850,y:600,w:550,h:50},{x:1350,y:200,w:50,h:450},
+      {x:2400,y:200,w:50,h:450},{x:2400,y:600,w:500,h:50},{x:2850,y:200,w:50,h:450},
+      {x:2100,y:700,w:50,h:450},{x:2100,y:1100,w:550,h:50},{x:2600,y:700,w:50,h:450},
+      {x:1400,y:900,w:50,h:450},{x:1400,y:1300,w:450,h:50},{x:1800,y:900,w:50,h:450},
+      {x:750,y:900,w:50,h:450},{x:750,y:1300,w:450,h:50},{x:1150,y:900,w:50,h:450},
+      {x:2500,y:1300,w:50,h:450},{x:2500,y:1700,w:450,h:50},{x:2900,y:1300,w:50,h:450},
+      {x:300,y:1600,w:50,h:550},{x:300,y:2100,w:550,h:50},{x:800,y:1600,w:50,h:550},
+      {x:1200,y:1700,w:50,h:550},{x:1200,y:2200,w:650,h:50},{x:1800,y:1700,w:50,h:550},
+      {x:2200,y:2000,w:50,h:650},{x:2200,y:2600,w:550,h:50},{x:2700,y:2000,w:50,h:650},
+      {x:700,y:2300,w:50,h:450},{x:700,y:2700,w:450,h:50},{x:1100,y:2300,w:50,h:450},
+      {x:1900,y:1200,w:50,h:400},{x:1900,y:1550,w:450,h:50},{x:2300,y:1200,w:50,h:400},
+    ],
+    tasks:[
+      {id:1,x:880,y:250,w:150,h:150,name:"💻 오피스",type:'cardswipe',color:'rgba(52,152,219,0.18)'},
+      {id:2,x:2440,y:250,w:150,h:150,name:"🔒 보안실",type:'stars',color:'rgba(155,89,182,0.18)'},
+      {id:3,x:1440,y:950,w:150,h:150,name:"💨 산소 청소",type:'fuel',color:'rgba(26,188,156,0.18)'},
+      {id:4,x:330,y:1650,w:150,h:150,name:"📦 창고 배선",type:'wires',color:'rgba(230,126,34,0.18)'},
+      {id:5,x:1240,y:1750,w:150,h:150,name:"🔬 실험실",type:'reactor',color:'rgba(231,76,60,0.18)'},
+      {id:6,x:2540,y:1350,w:150,h:150,name:"☄️ 무기실",type:'asteroids',color:'rgba(52,73,94,0.25)',visual:true},
+      {id:7,x:730,y:2350,w:150,h:150,name:"🔧 드릴",type:'wires',color:'rgba(46,213,115,0.18)'},
+      {id:99,x:250,y:250,w:150,h:150,name:"⚡ 정전 복구",type:'wires',color:'rgba(235,94,85,0.28)',isSab:true,sabType:'lights'},
+      {id:98,x:2250,y:2050,w:150,h:150,name:"☢️ 원자로",type:'reactor',color:'rgba(255,107,53,0.28)',isSab:true,sabType:'reactor'},
+      {id:97,x:780,y:950,w:150,h:150,name:"💨 산소공급",type:'wires',color:'rgba(83,82,237,0.28)',isSab:true,sabType:'o2'},
+    ],
+    vents:[
+      {id:0,x:420,y:1850,linked:[1,2]},{id:1,x:2320,y:2350,linked:[0,2]},{id:2,x:1500,y:1980,linked:[0,1]},
+    ],
+    spawn:{x:1500,y:1980},
+    emergency:{x:1480,y:1930,w:110,h:110},
+  }
+};
+
+let currentMapId = 'skeld';
+let MAP = MAPS[currentMapId];
+
+// ═══════════════════════════════
+//  STATE
+// ═══════════════════════════════
+let peer=null,isHost=false,myId=null,hostConn=null,clients={};
+let myLocalTasks=[],myVote=null,currentTaskId=null,currentTaskType=null;
+let joyVector={x:0,y:0};
+const keys={w:false,a:false,s:false,d:false};
+let myColor=COLORS[0],myHat='';
+let votingTimerInt=null;
+let sabMenuOpen=false;
+let devMode=false;
+let botCounter=0;
+
+let GS={
+  phase:'Lobby', mapId:'skeld',
+  imposters:[], roles:{}, // roles: id->'crewmate'|'imposter'|'engineer'|'scientist'
+  players:{}, corpses:[],
+  tasksTotal:0, tasksCompleted:0, visualTasks:{}, // taskId -> [playerIds who completed]
+  votes:{}, tallies:{},
+  winner:'', winnerSub:'',
+  sabActive:null, sabTimer:0,
+  sabCD:0, killCDs:{}, emergCDs:{},
+};
+
+// ═══════════════════════════════
+//  CANVAS
+// ═══════════════════════════════
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+const mCanvas=document.getElementById('minimap-canvas');
+const mCtx=mCanvas.getContext('2d');
+const tCanvas=document.getElementById('task-canvas');
+const tCtx=tCanvas.getContext('2d');
+
+function resize(){
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  tCanvas.width=tCanvas.parentElement.clientWidth;
+  tCanvas.height=tCanvas.parentElement.clientHeight;
+}
+window.addEventListener('resize',resize); resize();
+
+// ═══════════════════════════════
+//  AUDIO
+// ═══════════════════════════════
+const aCtx=new(window.AudioContext||window.webkitAudioContext)();
+function snd(type){
+  try{
+    if(aCtx.state==='suspended')aCtx.resume();
+    const o=aCtx.createOscillator(),g=aCtx.createGain();
+    o.connect(g);g.connect(aCtx.destination);
+    const t=aCtx.currentTime;
+    ({
+      kill:()=>{o.type='sawtooth';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(40,t+0.25);g.gain.setValueAtTime(0.4,t);g.gain.linearRampToValueAtTime(0,t+0.25);o.start();o.stop(t+0.25)},
+      report:()=>{o.type='triangle';o.frequency.setValueAtTime(600,t);o.frequency.setValueAtTime(900,t+0.15);g.gain.setValueAtTime(0.3,t);g.gain.linearRampToValueAtTime(0,t+0.4);o.start();o.stop(t+0.4)},
+      sabotage:()=>{o.type='sine';o.frequency.setValueAtTime(250,t);o.frequency.linearRampToValueAtTime(80,t+0.6);g.gain.setValueAtTime(0.35,t);g.gain.linearRampToValueAtTime(0,t+0.7);o.start();o.stop(t+0.7)},
+      task:()=>{o.type='sine';o.frequency.setValueAtTime(523,t);o.frequency.setValueAtTime(659,t+0.1);o.frequency.setValueAtTime(784,t+0.2);g.gain.setValueAtTime(0.2,t);g.gain.linearRampToValueAtTime(0,t+0.4);o.start();o.stop(t+0.4)},
+      emergency:()=>{o.type='square';o.frequency.setValueAtTime(440,t);o.frequency.setValueAtTime(220,t+0.1);o.frequency.setValueAtTime(440,t+0.2);g.gain.setValueAtTime(0.25,t);g.gain.linearRampToValueAtTime(0,t+0.35);o.start();o.stop(t+0.35)},
+      eject:()=>{o.type='sine';o.frequency.setValueAtTime(880,t);o.frequency.exponentialRampToValueAtTime(110,t+1.0);g.gain.setValueAtTime(0.3,t);g.gain.linearRampToValueAtTime(0,t+1.0);o.start();o.stop(t+1.0)},
+    }[type]||function(){})();
+  }catch(e){}
+}
+function bcastSnd(t){snd(t);for(let c in clients)clients[c].send({type:'sound',st:t});}
+
+// ═══════════════════════════════
+//  SPRITE SHEET SETUP
+// ═══════════════════════════════
+// Sprite: 5 cols x 2 rows = 10 walk frames (red base)
+// We tint by drawing sprite then applying color multiply via offscreen canvas
+const SPRITE_COLS = 5, SPRITE_ROWS = 2, SPRITE_FRAMES = 10;
+const spriteImg = new Image();
+spriteImg.src = 'data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAMgAyADASIAAhEBAxEB/8QAHQABAAICAwEBAAAAAAAAAAAAAAYHBAUCAwgBCf/EAFIQAAICAQICBAoECQcLBAIDAAABAgMEBREGEiExQVEHEyJhcYGRobHBFDJS0QgjNUJicnOy4RUzY4KiwtIWJCVDRVNVkpOU8Bc0g/FEhHSz4v/EABwBAQABBQEBAAAAAAAAAAAAAAABAgMEBQYHCP/EAEERAQABAwIDBAgEAwcDBAMAAAABAgMEBRESITEGQVFhE3GBkaGxwdEUIjLwM1LhBxUjNEJi8RZDkjVTcqIkgtL/2gAMAwEAAhEDEQA/APGQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/2Q==';
+let spriteReady = false;
+spriteImg.onload = () => { spriteReady = true; buildTintCache(); };
+
+// Per-color tinted offscreen canvases: color -> [10 frame canvases]
+const tintCache = {};
+
+function hexToRgb(hex){
+  const n=parseInt(hex.replace('#',''),16);
+  return[(n>>16)&255,(n>>8)&255,n&255];
+}
+
+function buildTintedFrame(sx,sy,sw,sh,rgb){
+  const oc=document.createElement('canvas');oc.width=sw;oc.height=sh;
+  const octx=oc.getContext('2d');
+  octx.drawImage(spriteImg,sx,sy,sw,sh,0,0,sw,sh);
+  const id=octx.getImageData(0,0,sw,sh);
+  const d=id.data;
+  // The sprite base is red (#c51111 ≈ r:197,g:17,b:17)
+  // We remap: for each pixel, shift hue to target color
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]<10) continue; // skip transparent
+    const r=d[i],g=d[i+1],b=d[i+2];
+    // brightness from red channel (dominant in source)
+    const bright=(r*0.6+g*0.2+b*0.2)/255;
+    // dark areas (shadows/outline) — keep dark
+    const lum=(r*0.299+g*0.587+b*0.114);
+    if(lum<40){ // very dark = outline, keep black-ish
+      d[i]=Math.round(r*0.4); d[i+1]=Math.round(g*0.4); d[i+2]=Math.round(b*0.4);
+    } else if(r>180&&g<80&&b<80){ // bright red body → tint to player color
+      d[i]=Math.min(255,Math.round(rgb[0]*bright*1.4));
+      d[i+1]=Math.min(255,Math.round(rgb[1]*bright*1.4));
+      d[i+2]=Math.min(255,Math.round(rgb[2]*bright*1.4));
+    } else if(r>100&&g<60&&b<60){ // darker red (shadow) → darker tint
+      const f=bright*0.7;
+      d[i]=Math.min(255,Math.round(rgb[0]*f));
+      d[i+1]=Math.min(255,Math.round(rgb[1]*f));
+      d[i+2]=Math.min(255,Math.round(rgb[2]*f));
+    }
+    // visor (high blue & green) stays as-is
+  }
+  octx.putImageData(id,0,0);
+  return oc;
+}
+
+function buildTintCache(){
+  if(!spriteReady) return;
+  const fw=spriteImg.width/SPRITE_COLS;
+  const fh=spriteImg.height/SPRITE_ROWS;
+  COLORS.forEach(hex=>{
+    if(tintCache[hex]) return;
+    const rgb=hexToRgb(hex);
+    const frames=[];
+    for(let f=0;f<SPRITE_FRAMES;f++){
+      const col=f%SPRITE_COLS, row=Math.floor(f/SPRITE_COLS);
+      frames.push(buildTintedFrame(col*fw,row*fh,fw,fh,rgb));
+    }
+    tintCache[hex]=frames;
+  });
+  // also white for ghost
+  if(!tintCache['#ffffff']){
+    const rgb=[220,220,220];
+    const fw2=spriteImg.width/SPRITE_COLS, fh2=spriteImg.height/SPRITE_ROWS;
+    const frames=[];
+    for(let f=0;f<SPRITE_FRAMES;f++){
+      const col=f%SPRITE_COLS,row=Math.floor(f/SPRITE_COLS);
+      frames.push(buildTintedFrame(col*fw2,row*fh2,fw2,fh2,rgb));
+    }
+    tintCache['#ffffff']=frames;
+  }
+}
+
+// Ensure a color's frames exist
+function ensureTint(hex){
+  if(tintCache[hex]||!spriteReady) return;
+  const rgb=hexToRgb(hex);
+  const fw=spriteImg.width/SPRITE_COLS, fh=spriteImg.height/SPRITE_ROWS;
+  const frames=[];
+  for(let f=0;f<SPRITE_FRAMES;f++){
+    const col=f%SPRITE_COLS,row=Math.floor(f/SPRITE_COLS);
+    frames.push(buildTintedFrame(col*fw,row*fh,fw,fh,rgb));
+  }
+  tintCache[hex]=frames;
+}
+
+// animT is global walk timer (incremented in mainLoop)
+// frameIdx: 0=idle, 1-9=walk cycle
+function drawChar(c,x,y,color,hat,facing,dead,scale=1){
+  ensureTint(color);
+  c.save();c.translate(x,y);
+
+  if(dead){
+    // ghost: faded, floating
+    c.globalAlpha=0.45;
+    c.scale(facing*scale,scale);
+    if(spriteReady&&tintCache[color]){
+      const fw=spriteImg.width/SPRITE_COLS,fh=spriteImg.height/SPRITE_ROWS;
+      const dw=fw*0.7,dh=fh*0.7;
+      c.drawImage(tintCache[color][0],-dw/2,-dh/2,dw,dh);
+    } else {
+      c.fillStyle=color;c.beginPath();c.arc(0,-8,18,Math.PI,0);c.fillRect(-18,-8,36,20);c.fill();
+    }
+    // ghost glow
+    c.globalAlpha=0.15;
+    c.fillStyle='#88ccff';c.beginPath();c.arc(0,-10,22,0,Math.PI*2);c.fill();
+    c.globalAlpha=1;
+    // hat above ghost
+    if(hat){c.font=`${18*Math.abs(scale)}px serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(hat,0,-52);}
+    c.restore();return;
+  }
+
+  c.scale(facing*scale,scale);
+
+  if(spriteReady&&tintCache[color]){
+    const fw=spriteImg.width/SPRITE_COLS,fh=spriteImg.height/SPRITE_ROWS;
+    // display size: height ~56px, maintain aspect
+    const dh=56,dw=fw/fh*dh;
+    // shadow
+    c.fillStyle='rgba(0,0,0,0.22)';c.beginPath();c.ellipse(0,dh/2-2,dw*0.4,5,0,0,Math.PI*2);c.fill();
+    c.drawImage(tintCache[color][currentSpriteFrame],-dw/2,-dh/2,dw,dh);
+    // hat
+    if(hat){c.font=`${18*Math.abs(scale)}px serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(hat,0,-dh/2-12);}
+  } else {
+    // fallback canvas draw
+    c.fillStyle='rgba(0,0,0,0.2)';c.beginPath();c.ellipse(0,24,16,5,0,0,Math.PI*2);c.fill();
+    c.fillStyle=color;c.beginPath();c.ellipse(0,2,18,22,0,0,Math.PI*2);c.fill();
+    c.beginPath();c.ellipse(3,-21,16,13,0,0,Math.PI*2);c.fill();
+    const grd=c.createLinearGradient(6,-30,16,-14);
+    grd.addColorStop(0,'rgba(180,240,255,0.95)');grd.addColorStop(1,'rgba(60,160,210,0.75)');
+    c.fillStyle=grd;c.beginPath();c.ellipse(9,-21,9,7,0,0,Math.PI*2);c.fill();
+    if(hat){c.font='18px serif';c.textAlign='center';c.textBaseline='middle';c.fillText(hat,0,-44);}
+  }
+  c.restore();
+}
+
+// Current sprite frame (shared, updated in mainLoop)
+let currentSpriteFrame = 0;
+
+// ═══════════════════════════════
+//  CUSTOMIZER
+// ═══════════════════════════════
+function buildCustomUI(){
+  const cg=document.getElementById('color-grid');
+  COLORS.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='color-swatch'+(i===0?' selected':'');
+    d.style.background=c;
+    d.onclick=()=>{myColor=c;document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));d.classList.add('selected');renderPreview();};
+    cg.appendChild(d);
+  });
+  const hg=document.getElementById('hat-grid');
+  HATS.forEach((h,i)=>{
+    const d=document.createElement('div');d.className='hat-btn'+(i===0?' selected':'');
+    d.textContent=h||'🚫';
+    d.onclick=()=>{myHat=h;document.querySelectorAll('.hat-btn').forEach(b=>b.classList.remove('selected'));d.classList.add('selected');renderPreview();};
+    hg.appendChild(d);
+  });
+  renderPreview();
+}
+function renderPreview(){
+  const pc=document.getElementById('avatar-preview'),pctx=pc.getContext('2d');
+  pctx.clearRect(0,0,70,90);
+  ensureTint(myColor);
+  currentSpriteFrame=0;
+  drawChar(pctx,35,55,myColor,myHat,1,false,1.0);
+}
+// Animate preview
+let _previewFrame=0,_previewTick=0;
+function animatePreview(){
+  if(document.getElementById('menu-ui').style.display==='none'){requestAnimationFrame(animatePreview);return;}
+  _previewTick++;
+  if(spriteReady&&_previewTick%4===0){
+    _previewFrame=(_previewFrame+1)%SPRITE_FRAMES;
+    currentSpriteFrame=_previewFrame;
+    renderPreview();
+  }
+  requestAnimationFrame(animatePreview);
+}
+requestAnimationFrame(animatePreview);
+
+// ═══════════════════════════════
+//  NETWORKING
+// ═══════════════════════════════
+function createRoom(){
+  const code=Math.random().toString(36).substring(2,7).toUpperCase();
+  peer=new Peer('AMG3-'+code);
+  peer.on('open',id=>{
+    isHost=true;myId=id;
+    enterGame(`🏠 코드: ${code}`);
+    addPlayer(myId,document.getElementById('nickname').value||'Host',myColor,myHat);
+    startLoop();
+  });
+  peer.on('connection',conn=>{
+    conn.on('open',()=>{
+      clients[conn.peer]=conn;
+      conn.on('data',d=>{
+        if(d.type==='join')addPlayer(conn.peer,d.name,d.color,d.hat);
+        else if(d.type==='input')handleMove(conn.peer,d.keys,d.vec);
+        else if(d.type==='action')processAction(conn.peer,d.action,d.extra);
+        else if(d.type==='vote')handleVote(conn.peer,d.tid);
+        else if(d.type==='chat')relayChat(conn.peer,d.msg);
+        else if(d.type==='task_done'){GS.tasksCompleted++;checkWin();snd('task');}
+        else if(d.type==='vent')handleVent(conn.peer);
+      });
+    });
+  });
+}
+function joinRoom(){
+  const code=document.getElementById('room-code').value.toUpperCase().trim();
+  peer=new Peer();
+  peer.on('open',id=>{
+    myId=id;hostConn=peer.connect('AMG3-'+code);
+    hostConn.on('open',()=>{
+      enterGame('게임 참여 중...');
+      hostConn.send({type:'join',name:document.getElementById('nickname').value||'Player',color:myColor,hat:myHat});
+      startLoop();
+    });
+    hostConn.on('data',d=>{
+      if(d.type==='state')syncState(d.gs);
+      if(d.type==='chat_bc')appendChat(document.getElementById('passive-chat-box'),d.name,d.msg,d.color,false);
+      if(d.type==='vchat_bc')appendChat(document.getElementById('voting-chat-box'),d.name,d.msg,d.color,false);
+      if(d.type==='sound')snd(d.st);
+      if(d.type==='cutscene')triggerCutscene(d.by,d.vcol);
+    });
+  });
+}
+function enterGame(info){
+  document.getElementById('menu-ui').style.display='none';
+  document.getElementById('game-ui').style.display='block';
+  document.getElementById('minimap-container').style.display='block';
+  document.getElementById('joystick-zone').style.display='block';
+  document.getElementById('passive-chat').style.display='flex';
+  document.getElementById('map-label').style.display='block';
+  document.getElementById('room-info').innerText=info;
+  if(aCtx.state==='suspended')aCtx.resume();
+}
+function addPlayer(id,name,color,hat){
+  const used=Object.values(GS.players).map(p=>p.color);
+  const col=color||(COLORS.find(c=>!used.includes(c))||'#fff');
+  const sp=MAP.spawn||{x:1480,y:1380};
+  GS.players[id]={x:sp.x,y:sp.y,color:col,name,hat:hat||'',isDead:false,facing:1,isMoving:false,inVent:-1};
+}
+function sendAll(d){for(let c in clients)clients[c].send(d);}
+
+// ═══════════════════════════════
+//  IMPOSTER COUNT SELECTOR
+// ═══════════════════════════════
+let selectedImpCount = 1;
+function changeImpCount(delta){
+  const pCount = Object.keys(GS.players).length;
+  const maxImps = Math.max(1, Math.floor(pCount / 2)); // max half
+  selectedImpCount = Math.max(1, Math.min(maxImps, selectedImpCount + delta));
+  document.getElementById('imp-count-display').textContent = selectedImpCount;
+  document.getElementById('imp-max-label').textContent = maxImps;
+}
+function updateImpSelector(){
+  if(!isHost) return;
+  const pCount = Object.keys(GS.players).length;
+  const maxImps = Math.max(1, Math.floor(pCount / 2));
+  selectedImpCount = Math.min(selectedImpCount, maxImps);
+  document.getElementById('imp-count-display').textContent = selectedImpCount;
+  document.getElementById('imp-max-label').textContent = maxImps;
+}
+
+// ═══════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════
+function hostStartGame(){
+  const pIds=Object.keys(GS.players); if(pIds.length<1)return;
+  MAP=MAPS[currentMapId]; GS.mapId=currentMapId;
+  GS.phase='Playing';GS.corpses=[];GS.votes={};GS.tallies={};
+  GS.sabActive=null;GS.sabTimer=0;GS.sabCD=15;
+  GS.tasksCompleted=0;GS.visualTasks={};
+  GS.killCDs={};GS.emergCDs={};
+  const normalTasks=MAP.tasks.filter(t=>!t.isSab);
+  GS.tasksTotal=pIds.length*normalTasks.length;
+  const shuffled=[...pIds].sort(()=>Math.random()-0.5);
+  // use host-selected count, clamped to safe range
+  const maxImps=Math.max(1,Math.floor(pIds.length/2));
+  const numImps=Math.max(1,Math.min(selectedImpCount,maxImps));
+  GS.imposters=shuffled.slice(0,numImps);
+  GS.roles={};
+  // assign special roles to non-imposters (engineer, scientist cycle)
+  let specialIdx=0;
+  const specialRoles=['engineer','scientist'];
+  pIds.forEach((id,i)=>{
+    const isImp=GS.imposters.includes(id);
+    let role='crewmate';
+    if(isImp){ role='imposter'; }
+    else if(pIds.length>=4&&specialIdx<2){ role=specialRoles[specialIdx++]; }
+    GS.roles[id]=role;
+    const sp=MAP.spawn||{x:1480,y:1380};
+    GS.players[id]={...GS.players[id],x:sp.x+Math.random()*160-80,y:sp.y+Math.random()*160-80,isDead:false,inVent:-1};
+    GS.killCDs[id]=KILL_CD_TIME; GS.emergCDs[id]=0;
+  });
+  document.getElementById('passive-chat-box').innerHTML='';
+  const roleMsg=`임포스터 ${numImps}명 / 엔지니어 ${pIds.length>=4?1:0}명 / 사이언티스트 ${pIds.length>=5?1:0}명`;
+  sysChat(`게임 시작! ${roleMsg}`);
+}
+
+function collides(x,y,s=16){
+  if(x-s<0||x+s>WORLD||y-s<0||y+s>WORLD)return true;
+  for(const w of MAP.walls){if(x+s>w.x&&x-s<w.x+w.w&&y+s>w.y&&y-s<w.y+w.h)return true;}
+  return false;
+}
+
+function handleMove(id,k,v){
+  const p=GS.players[id]; if(!p||p.isDead||GS.phase!=='Playing')return;
+  if(p.inVent!==-1){
+    const vent=MAP.vents.find(vt=>vt.id===p.inVent);
+    if(!vent)return;
+    if((k&&(k.d||k.s))||(v&&(v.x>0.5||v.y>0.5))){
+      const nid=vent.linked[0]; p.inVent=nid;
+      const nv=MAP.vents.find(vt=>vt.id===nid); if(nv){p.x=nv.x;p.y=nv.y;}
+    } else if((k&&(k.a||k.w))||(v&&(v.x<-0.5||v.y<-0.5))){
+      const nid=vent.linked[1]||vent.linked[0]; p.inVent=nid;
+      const nv=MAP.vents.find(vt=>vt.id===nid); if(nv){p.x=nv.x;p.y=nv.y;}
+    }
+    return;
+  }
+  let dx=0,dy=0;
+  if(v&&(v.x||v.y)){dx=v.x*SPD;dy=v.y*SPD;if(dx)p.facing=dx<0?-1:1;}
+  else if(k){
+    if(k.w)dy-=SPD;if(k.s)dy+=SPD;
+    if(k.a){dx-=SPD;p.facing=-1;}if(k.d){dx+=SPD;p.facing=1;}
+    if(dx&&dy){dx*=0.707;dy*=0.707;}
+  }
+  p.isMoving=!!(dx||dy);
+  if(!collides(p.x+dx,p.y))p.x+=dx;
+  if(!collides(p.x,p.y+dy))p.y+=dy;
+}
+
+function handleVent(id){
+  const p=GS.players[id]; if(!p||p.isDead)return;
+  const role=GS.roles[id];
+  const canVent=GS.imposters.includes(id)||role==='engineer';
+  if(!canVent)return;
+  if(p.inVent!==-1){p.inVent=-1;}
+  else{MAP.vents.forEach(v=>{if(Math.hypot(p.x-v.x,p.y-v.y)<65){p.inVent=v.id;p.x=v.x;p.y=v.y;}});}
+}
+function toggleVent(){
+  if(!GS.players[myId])return;
+  const role=GS.roles[myId];
+  if(!GS.imposters.includes(myId)&&role!=='engineer')return;
+  isHost?handleVent(myId):hostConn.send({type:'vent'});
+}
+
+function processAction(id,action,extra){
+  const p=GS.players[id]; if(!p||p.isDead)return;
+  const isImp=GS.imposters.includes(id);
+
+  if(action==='kill'&&isImp&&p.inVent===-1){
+    if((GS.killCDs[id]||0)>0)return;
+    for(const tid in GS.players){
+      const t=GS.players[tid];
+      if(tid!==id&&!t.isDead&&!GS.imposters.includes(tid)&&t.inVent===-1&&Math.hypot(p.x-t.x,p.y-t.y)<KILL_R){
+        t.isDead=true;
+        GS.corpses.push({x:t.x,y:t.y,color:t.color,hat:t.hat,name:t.name});
+        GS.killCDs[id]=KILL_CD_TIME;
+        bcastSnd('kill');checkWin();
+        devLog(`KILL: ${p.name} → ${t.name}`);
+        break;
+      }
+    }
+  }
+  else if(action==='report'&&p.inVent===-1){
+    for(const c of GS.corpses){
+      if(Math.hypot(p.x-c.x,p.y-c.y)<REPORT_R){
+        bcastCutscene(p.name,c.color);startMeeting(`${p.name}이(가) 시체를 발견!`);break;
+      }
+    }
+  }
+  else if(action==='emergency'&&p.inVent===-1){
+    if((GS.emergCDs[id]||0)>0)return;
+    const eb=MAP.emergency;
+    if(p.x>eb.x&&p.x<eb.x+eb.w&&p.y>eb.y&&p.y<eb.y+eb.h){
+      GS.emergCDs[id]=EMERG_CD;
+      bcastCutscene(p.name,null);startMeeting(`${p.name}이(가) 비상 회의 소집!`);bcastSnd('emergency');
+    }
+  }
+  else if(action==='sabotage_lights'&&isImp&&!GS.sabActive&&GS.sabCD<=0){
+    GS.sabActive='lights';GS.sabTimer=45;GS.sabCD=30;bcastSnd('sabotage');devLog('SABOTAGE: lights');
+  }
+  else if(action==='sabotage_reactor'&&isImp&&!GS.sabActive&&GS.sabCD<=0){
+    GS.sabActive='reactor';GS.sabTimer=60;GS.sabCD=30;bcastSnd('sabotage');devLog('SABOTAGE: reactor');
+  }
+  else if(action==='sabotage_o2'&&isImp&&!GS.sabActive&&GS.sabCD<=0){
+    GS.sabActive='o2';GS.sabTimer=45;GS.sabCD=30;bcastSnd('sabotage');devLog('SABOTAGE: o2');
+  }
+  else if(action==='fix_sab'){
+    if(GS.sabActive===extra?.sabType){GS.sabActive=null;snd('task');devLog('FIX SAB');}
+  }
+}
+
+function checkWin(){
+  let crew=0,imps=0;
+  for(const id in GS.players){if(!GS.players[id].isDead)(GS.imposters.includes(id)?imps:crew)++;}
+  if(imps===0){endGame('CREWMATE WIN 🎉','임포스터 모두 제거!');return;}
+  if(imps>=crew){endGame('IMPOSTOR WIN 💀','임포스터 승리!');return;}
+  if(GS.tasksCompleted>=GS.tasksTotal&&GS.tasksTotal>0){endGame('TASK WIN ✅','모든 업무 완료!');return;}
+}
+function endGame(w,s){GS.phase='GameOver';GS.winner=w;GS.winnerSub=s;}
+
+function startMeeting(reason){
+  GS.phase='Voting';GS.votes={};GS.tallies={};GS.sabActive=null;
+  const sp=MAP.spawn||{x:1480,y:1380};
+  for(const id in GS.players){GS.players[id].x=sp.x+(Math.random()*200-100);GS.players[id].y=sp.y+(Math.random()*200-100);GS.players[id].inVent=-1;}
+  closeMinigame();
+  setTimeout(()=>sysChat(reason||'비상 회의!'),300);
+}
+
+function handleVote(vid,tid){
+  if(GS.votes[vid])return;
+  GS.votes[vid]=tid;GS.tallies[tid]=(GS.tallies[tid]||0)+1;
+  const alive=Object.values(GS.players).filter(p=>!p.isDead).length;
+  if(Object.keys(GS.votes).length>=alive)tallyVotes();
+}
+function tallyVotes(){
+  let max=0,ejected=null;
+  for(const id in GS.tallies)if(GS.tallies[id]>max){max=GS.tallies[id];ejected=id;}
+  if(ejected&&ejected!=='SKIP'&&GS.players[ejected]){
+    GS.players[ejected].isDead=true;
+    const ep=GS.players[ejected];
+    const wasImp=GS.imposters.includes(ejected);
+    sysChat(`${ep.name} 추방! ${wasImp?'임포스터였습니다🔴':'크루원이었습니다🟢'}`);
+    snd('eject');
+  } else {sysChat('투표 없이 넘어갑니다.');}
+  GS.corpses=[];checkWin();
+  if(GS.phase==='Voting')GS.phase='Playing';
+}
+
+// ═══════════════════════════════
+//  CHAT (passive + voting)
+// ═══════════════════════════════
+function sendPassiveChat(){
+  const inp=document.getElementById('passive-chat-input');
+  const msg=inp.value.trim();if(!msg)return;
+  if(isHost)relayChat(myId,msg,'passive');
+  else hostConn.send({type:'chat',msg,ctx:'passive'});
+  inp.value='';
+}
+function sendVoteChat(){
+  const inp=document.getElementById('vote-chat-input');
+  const msg=inp.value.trim();if(!msg)return;
+  if(isHost)relayChat(myId,msg,'vote');
+  else hostConn.send({type:'chat',msg,ctx:'vote'});
+  inp.value='';
+}
+function relayChat(sid,msg,ctx='passive'){
+  const s=GS.players[sid];if(!s)return;
+  const box=ctx==='vote'?document.getElementById('voting-chat-box'):document.getElementById('passive-chat-box');
+  appendChat(box,s.name,msg,s.color,false);
+  const bcType=ctx==='vote'?'vchat_bc':'chat_bc';
+  sendAll({type:bcType,name:s.name,msg,color:s.color});
+}
+function appendChat(box,name,msg,color,isSystem){
+  if(!box)return;
+  const d=document.createElement('div');d.className='chat-msg'+(isSystem?' chat-system':'');
+  d.innerHTML=isSystem?`★ ${esc(msg)}`:`<strong style="color:${color}">${esc(name)}</strong>: <span style="color:#c8d0e0">${esc(msg)}</span>`;
+  box.appendChild(d);box.scrollTop=box.scrollHeight;
+}
+function sysChat(msg){
+  const pbox=document.getElementById('passive-chat-box');
+  const vbox=document.getElementById('voting-chat-box');
+  if(pbox)appendChat(pbox,null,msg,null,true);
+  if(vbox)appendChat(vbox,null,msg,null,true);
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ═══════════════════════════════
+//  STATE SYNC
+// ═══════════════════════════════
+let _lastPhase='Lobby';
+function syncState(gs){
+  const old=GS.phase; GS=gs; MAP=MAPS[GS.mapId]||MAP;
+  if(old!=='Voting'&&GS.phase==='Voting')showVoting();
+  if(old==='Voting'&&GS.phase==='Playing'){document.getElementById('voting-ui').style.display='none';if(votingTimerInt)clearInterval(votingTimerInt);}
+  if(GS.phase==='GameOver')showGameOver();
+  if(GS.phase==='Lobby')document.getElementById('game-over-ui').style.display='none';
+}
+
+// host-side phase watcher
+setInterval(()=>{
+  if(!isHost)return;
+  if(GS.phase!==_lastPhase){
+    if(GS.phase==='Voting'&&_lastPhase!=='Voting')showVoting();
+    if(_lastPhase==='Voting'&&GS.phase==='Playing'){document.getElementById('voting-ui').style.display='none';if(votingTimerInt)clearInterval(votingTimerInt);}
+    if(GS.phase==='GameOver')showGameOver();
+    if(GS.phase==='Lobby')document.getElementById('game-over-ui').style.display='none';
+    _lastPhase=GS.phase;
+  }
+},150);
+
+// ═══════════════════════════════
+//  TASK MINIGAMES
+// ═══════════════════════════════
+// --- Wire task ---
+const WIRE_COLS=['#ff4757','#2ed573','#1e90ff','#ffa502'];
+let wireS={left:[],right:[],drag:-1,mx:0,my:0};
+
+function initWires(){
+  const ch=tCanvas.height, sp=ch/5;
+  const lc=[...WIRE_COLS].sort(()=>Math.random()-0.5);
+  const rc=[...WIRE_COLS].sort(()=>Math.random()-0.5);
+  wireS.left=lc.map((color,i)=>({color,y:sp*(i+1),conn:-1}));
+  wireS.right=rc.map((color,i)=>({color,y:sp*(i+1)}));
+  wireS.drag=-1;
+}
+function drawWires(){
+  const cw=tCanvas.width,ch=tCanvas.height;
+  tCtx.fillStyle='#0d0f16';tCtx.fillRect(0,0,cw,ch);
+  tCtx.fillStyle='rgba(255,255,255,0.85)';tCtx.font='bold 15px Nunito';tCtx.textAlign='center';
+  tCtx.fillText('🔧 배선 연결',cw/2,26);
+  tCtx.fillStyle='rgba(255,255,255,0.04)';tCtx.fillRect(0,36,cw,ch-36);
+  wireS.left.forEach((w)=>{
+    tCtx.fillStyle=w.color;tCtx.beginPath();tCtx.roundRect(12,w.y-14,34,28,5);tCtx.fill();
+    tCtx.fillStyle='#000';tCtx.fillRect(42,w.y-4,7,8);
+  });
+  wireS.right.forEach((w)=>{
+    tCtx.fillStyle=w.color;tCtx.beginPath();tCtx.roundRect(cw-46,w.y-14,34,28,5);tCtx.fill();
+    tCtx.fillStyle='#000';tCtx.fillRect(cw-46,w.y-4,7,8);
+  });
+  wireS.left.forEach((w,i)=>{
+    tCtx.lineWidth=5;tCtx.strokeStyle=w.color;tCtx.lineCap='round';
+    if(w.conn!==-1){
+      const ry=wireS.right[w.conn].y;
+      tCtx.beginPath();tCtx.moveTo(50,w.y);tCtx.bezierCurveTo(cw*0.35,w.y,cw*0.65,ry,cw-50,ry);tCtx.stroke();
+    } else if(wireS.drag===i){
+      tCtx.beginPath();tCtx.moveTo(50,w.y);tCtx.lineTo(wireS.mx,wireS.my);tCtx.stroke();
+    }
+  });
+}
+tCanvas.addEventListener('pointerdown',e=>{
+  if(currentTaskType!=='wires'&&currentTaskType!=='wires_sab')return;
+  const r=tCanvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  wireS.left.forEach((w,i)=>{if(w.conn===-1&&mx<=75&&Math.abs(my-w.y)<30)wireS.drag=i;});
+  e.preventDefault();
+});
+tCanvas.addEventListener('pointermove',e=>{
+  if(wireS.drag!==-1){const r=tCanvas.getBoundingClientRect();wireS.mx=e.clientX-r.left;wireS.my=e.clientY-r.top;drawWires();}
+  e.preventDefault();
+});
+tCanvas.addEventListener('pointerup',e=>{
+  if(wireS.drag===-1)return;
+  const idx=wireS.drag,lw=wireS.left[idx],cw=tCanvas.width;
+  wireS.right.forEach((rw,ri)=>{
+    if(wireS.mx>=cw-70&&Math.abs(wireS.my-rw.y)<30){if(lw.color===rw.color){lw.conn=ri;snd('task');}}
+  });
+  wireS.drag=-1;drawWires();
+  if(wireS.left.every(w=>w.conn!==-1))setTimeout(completeCurrentTask,300);
+  e.preventDefault();
+});
+
+// --- Card Swipe ---
+let cardS={phase:'wait',x:50,speed:0,success:false,startTime:0,result:null};
+let cardAnimId=null;
+function initCardSwipe(){
+  cardS={phase:'wait',x:50,speed:0,success:false,startTime:0,result:null};
+  drawCardSwipe();
+}
+function drawCardSwipe(){
+  const cw=tCanvas.width,ch=tCanvas.height;
+  tCtx.fillStyle='#0d1218';tCtx.fillRect(0,0,cw,ch);
+  // reader slot
+  const slotX=cw/2-130,slotY=ch/2-15,slotW=260,slotH=30;
+  tCtx.fillStyle='#1a2230';tCtx.fillRect(slotX-10,slotY-40,slotW+20,slotH+80);tCtx.strokeStyle='#2e3a4e';tCtx.lineWidth=2;tCtx.strokeRect(slotX-10,slotY-40,slotW+20,slotH+80);
+  // green zone
+  tCtx.fillStyle='rgba(46,213,115,0.15)';tCtx.fillRect(slotX+80,slotY-40,slotW-170,slotH+80);
+  tCtx.strokeStyle='rgba(46,213,115,0.4)';tCtx.lineWidth=1;tCtx.strokeRect(slotX+80,slotY-40,slotW-170,slotH+80);
+  // slot
+  tCtx.fillStyle='#0a0e15';tCtx.fillRect(slotX,slotY,slotW,slotH);
+  tCtx.strokeStyle='#334';tCtx.lineWidth=1.5;tCtx.strokeRect(slotX,slotY,slotW,slotH);
+  // card
+  if(cardS.phase!=='wait'){
+    const cardW=70,cardH=42;
+    const cx=slotX+cardS.x,cy=slotY+(slotH-cardH)/2;
+    tCtx.fillStyle='#1a3a6e';tCtx.fillRect(cx,cy,cardW,cardH);
+    tCtx.fillStyle='#ffa502';tCtx.fillRect(cx+5,cy+8,40,6);tCtx.fillRect(cx+5,cy+20,28,4);
+    tCtx.strokeStyle='#2e5ca8';tCtx.lineWidth=1;tCtx.strokeRect(cx,cy,cardW,cardH);
+    // speed indicator
+    tCtx.fillStyle='rgba(0,0,0,0.5)';tCtx.fillRect(slotX,slotY+slotH+10,slotW,10);
+    const speedNorm=Math.min(1,(cardS.speed||2)/8);
+    tCtx.fillStyle=speedNorm<0.35?'#2ed573':speedNorm<0.65?'#ffa502':'#ff4757';
+    tCtx.fillRect(slotX,slotY+slotH+10,slotW*speedNorm,10);
+  }
+  // instructions
+  tCtx.fillStyle='white';tCtx.font='bold 14px Nunito';tCtx.textAlign='center';
+  tCtx.fillText('💳 카드 스와이프',cw/2,ch*0.2);
+  if(cardS.phase==='wait'){
+    tCtx.font='13px Nunito';tCtx.fillStyle='#8892a4';tCtx.fillText('클릭/탭하여 카드를 밀어 넣으세요',cw/2,ch*0.75);
+  } else if(cardS.phase==='swipe'){
+    tCtx.font='12px Nunito';tCtx.fillStyle='#8892a4';tCtx.fillText('너무 빠르지 않게 미세요!',cw/2,ch*0.75);
+  }
+  if(cardS.result){
+    tCtx.font='bold 22px Nunito';tCtx.fillStyle=cardS.result==='ok'?'#2ed573':'#ff4757';
+    tCtx.fillText(cardS.result==='ok'?'✅ 완료!':'❌ 다시 시도',cw/2,ch*0.88);
+  }
+}
+function cardClick(){
+  if(cardS.phase==='wait'){
+    cardS.phase='swipe';cardS.x=0;cardS.speed=2+Math.random()*3;cardS.startTime=Date.now();
+    if(cardAnimId)cancelAnimationFrame(cardAnimId);
+    function step(){
+      if(cardS.phase!=='swipe')return;
+      cardS.x+=cardS.speed;cardS.speed+=0.08;
+      const cw=tCanvas.width,slotW=260;
+      if(cardS.x>slotW-70){
+        const norm=cardS.speed/8;
+        if(norm<0.5){cardS.result='ok';cardS.phase='done';snd('task');setTimeout(completeCurrentTask,600);}
+        else{cardS.result='fail';cardS.phase='wait';cardS.x=0;setTimeout(()=>{cardS.result=null;drawCardSwipe();},1200);}
+        drawCardSwipe();return;
+      }
+      drawCardSwipe();cardAnimId=requestAnimationFrame(step);
+    }
+    cardAnimId=requestAnimationFrame(step);
+  }
+}
+tCanvas.addEventListener('pointerdown',e=>{if(currentTaskType==='cardswipe')cardClick();e.preventDefault();},{passive:false});
+
+// --- Asteroids ---
+let astS={bullets:[],rocks:[],ship:{x:0,y:0},score:0,needed:8,fireCD:0,animId:null};
+function initAsteroids(){
+  const cw=tCanvas.width,ch=tCanvas.height;
+  astS={bullets:[],rocks:[],ship:{x:cw/2,y:ch*0.75},score:0,needed:8,fireCD:0};
+  for(let i=0;i<5;i++) spawnRock(cw,ch);
+  if(astS.animId)cancelAnimationFrame(astS.animId);
+  let lt=Date.now();
+  function step(){
+    if(currentTaskType!=='asteroids'){cancelAnimationFrame(astS.animId);return;}
+    const now=Date.now(),dt=(now-lt)/1000;lt=now;
+    updateAsteroids(dt,cw,ch);drawAsteroids(cw,ch);
+    astS.animId=requestAnimationFrame(step);
+  }
+  astS.animId=requestAnimationFrame(step);
+}
+function spawnRock(cw,ch){
+  astS.rocks.push({x:Math.random()*cw,y:Math.random()*ch*0.4+30,r:20+Math.random()*20,vx:(Math.random()-0.5)*1.5,vy:0.5+Math.random()*1});
+}
+function updateAsteroids(dt,cw,ch){
+  astS.fireCD=Math.max(0,astS.fireCD-dt);
+  astS.bullets.forEach(b=>{b.y-=280*dt;});
+  astS.bullets=astS.bullets.filter(b=>b.y>0);
+  astS.rocks.forEach(r=>{r.x+=r.vx;r.y+=r.vy;if(r.x<0)r.x=cw;if(r.x>cw)r.x=0;});
+  // hit detection
+  astS.bullets=astS.bullets.filter(b=>{
+    let hit=false;
+    astS.rocks=astS.rocks.filter(r=>{
+      if(Math.hypot(b.x-r.x,b.y-r.y)<r.r+5){hit=true;astS.score++;snd('task');if(astS.rocks.length<4)spawnRock(cw,ch);return false;}
+      return true;
+    });
+    return !hit;
+  });
+  astS.rocks=astS.rocks.filter(r=>r.y<ch+50);
+  while(astS.rocks.length<3)spawnRock(cw,ch);
+  if(astS.score>=astS.needed){setTimeout(completeCurrentTask,300);}
+}
+function drawAsteroids(cw,ch){
+  tCtx.fillStyle='#05070d';tCtx.fillRect(0,0,cw,ch);
+  // stars bg
+  tCtx.fillStyle='rgba(255,255,255,0.4)';
+  for(let i=0;i<30;i++)tCtx.fillRect((i*137)%cw,(i*97)%ch,1,1);
+  tCtx.fillStyle='white';tCtx.font='bold 13px Nunito';tCtx.textAlign='center';
+  tCtx.fillText(`☄️ 소행성 격추 ${astS.score}/${astS.needed}`,cw/2,20);
+  // bullets
+  tCtx.fillStyle='#ffa502';
+  astS.bullets.forEach(b=>{tCtx.fillRect(b.x-2,b.y-8,4,12);});
+  // rocks
+  astS.rocks.forEach(r=>{
+    tCtx.fillStyle='#5a6272';tCtx.beginPath();tCtx.arc(r.x,r.y,r.r,0,Math.PI*2);tCtx.fill();
+    tCtx.strokeStyle='#7a8292';tCtx.lineWidth=2;tCtx.stroke();
+  });
+  // ship
+  const sx=astS.ship.x,sy=astS.ship.y;
+  tCtx.fillStyle='#2ed573';tCtx.beginPath();tCtx.moveTo(sx,sy-18);tCtx.lineTo(sx-12,sy+10);tCtx.lineTo(sx+12,sy+10);tCtx.closePath();tCtx.fill();
+  tCtx.fillStyle='#ff6b35';tCtx.beginPath();tCtx.moveTo(sx-8,sy+10);tCtx.lineTo(sx,sy+18);tCtx.lineTo(sx+8,sy+10);tCtx.closePath();tCtx.fill();
+  tCtx.fillStyle='rgba(46,213,115,0.1)';tCtx.font='11px Nunito';tCtx.fillStyle='#5a6272';tCtx.fillText('탭/클릭: 발사 | 좌우: 이동',cw/2,ch-8);
+}
+tCanvas.addEventListener('pointerdown',e=>{
+  if(currentTaskType!=='asteroids')return;
+  const r=tCanvas.getBoundingClientRect();
+  const mx=e.clientX-r.left;
+  astS.ship.x=mx;
+  if(astS.fireCD<=0){astS.bullets.push({x:astS.ship.x,y:astS.ship.y-18});astS.fireCD=0.25;}
+  e.preventDefault();
+},{passive:false});
+tCanvas.addEventListener('pointermove',e=>{
+  if(currentTaskType!=='asteroids')return;
+  const r=tCanvas.getBoundingClientRect();astS.ship.x=e.clientX-r.left;
+  e.preventDefault();
+},{passive:false});
+
+// --- Stars task ---
+let starS={target:[],current:[],solved:false};
+function initStars(){
+  starS.solved=false;
+  const count=6;
+  starS.target=Array.from({length:count},()=>({x:0.2+Math.random()*0.6,y:0.2+Math.random()*0.5}));
+  starS.current=starS.target.map(s=>({x:s.x+(Math.random()-0.5)*0.3,y:s.y+(Math.random()-0.5)*0.3,dragging:false,sx:0,sy:0}));
+  drawStars();
+}
+let starDragIdx=-1;
+function drawStars(){
+  const cw=tCanvas.width,ch=tCanvas.height;
+  tCtx.fillStyle='#05070d';tCtx.fillRect(0,0,cw,ch);
+  tCtx.fillStyle='rgba(255,255,255,0.25)';
+  for(let i=0;i<60;i++)tCtx.fillRect((i*113)%cw,(i*79)%ch,1,1);
+  // target constellation
+  tCtx.strokeStyle='rgba(46,213,115,0.2)';tCtx.lineWidth=1;
+  for(let i=0;i<starS.target.length-1;i++){
+    tCtx.beginPath();tCtx.moveTo(starS.target[i].x*cw,starS.target[i].y*ch);
+    tCtx.lineTo(starS.target[i+1].x*cw,starS.target[i+1].y*ch);tCtx.stroke();
+  }
+  starS.target.forEach(s=>{
+    tCtx.fillStyle='rgba(46,213,115,0.35)';tCtx.beginPath();tCtx.arc(s.x*cw,s.y*ch,6,0,Math.PI*2);tCtx.fill();
+  });
+  // current
+  tCtx.strokeStyle='rgba(255,165,2,0.5)';tCtx.lineWidth=1.5;
+  for(let i=0;i<starS.current.length-1;i++){
+    tCtx.beginPath();tCtx.moveTo(starS.current[i].x*cw,starS.current[i].y*ch);
+    tCtx.lineTo(starS.current[i+1].x*cw,starS.current[i+1].y*ch);tCtx.stroke();
+  }
+  starS.current.forEach((s,i)=>{
+    const matched=Math.hypot((s.x-starS.target[i].x)*cw,(s.y-starS.target[i].y)*ch)<15;
+    tCtx.fillStyle=matched?'#ffa502':'#fff';
+    tCtx.beginPath();tCtx.arc(s.x*cw,s.y*ch,8,0,Math.PI*2);tCtx.fill();
+    tCtx.fillStyle='#000';tCtx.font='bold 10px Nunito';tCtx.textAlign='center';tCtx.textBaseline='middle';
+    tCtx.fillText(i+1,s.x*cw,s.y*ch);tCtx.textBaseline='alphabetic';
+  });
+  tCtx.fillStyle='white';tCtx.font='bold 13px Nunito';tCtx.textAlign='center';
+  tCtx.fillText('⭐ 별 지도 맞추기',cw/2,20);
+  tCtx.font='11px Nunito';tCtx.fillStyle='#5a6272';tCtx.fillText('별을 녹색 위치로 드래그',cw/2,ch-8);
+}
+tCanvas.addEventListener('pointerdown',e=>{
+  if(currentTaskType!=='stars')return;
+  const r=tCanvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  const cw=tCanvas.width,ch=tCanvas.height;
+  starDragIdx=-1;
+  starS.current.forEach((s,i)=>{if(Math.hypot(mx-s.x*cw,my-s.y*ch)<16){starDragIdx=i;}});
+  e.preventDefault();
+},{passive:false});
+tCanvas.addEventListener('pointermove',e=>{
+  if(currentTaskType!=='stars'||starDragIdx===-1)return;
+  const r=tCanvas.getBoundingClientRect(),cw=tCanvas.width,ch=tCanvas.height;
+  starS.current[starDragIdx].x=Math.max(0,Math.min(1,(e.clientX-r.left)/cw));
+  starS.current[starDragIdx].y=Math.max(0,Math.min(1,(e.clientY-r.top)/ch));
+  drawStars();
+  if(starS.current.every((s,i)=>Math.hypot((s.x-starS.target[i].x)*cw,(s.y-starS.target[i].y)*ch)<15)){
+    snd('task');setTimeout(completeCurrentTask,400);
+  }
+  e.preventDefault();
+},{passive:false});
+tCanvas.addEventListener('pointerup',e=>{starDragIdx=-1;e.preventDefault();},{passive:false});
+
+// --- Fuel task ---
+let fuelS={filled:0,pouring:false};
+function initFuel(){
+  fuelS={filled:0,pouring:false};
+  drawFuel();
+}
+function drawFuel(){
+  const cw=tCanvas.width,ch=tCanvas.height;
+  tCtx.fillStyle='#05080f';tCtx.fillRect(0,0,cw,ch);
+  tCtx.fillStyle='white';tCtx.font='bold 14px Nunito';tCtx.textAlign='center';
+  tCtx.fillText('⛽ 연료 주입',cw/2,26);
+  // tank
+  const tx=cw/2-40,ty=ch*0.25,tw=80,th=ch*0.5;
+  tCtx.fillStyle='#1a2230';tCtx.fillRect(tx,ty,tw,th);
+  tCtx.fillStyle='#ff6b35';tCtx.fillRect(tx+2,ty+th*(1-fuelS.filled)-2+2,tw-4,th*fuelS.filled);
+  tCtx.strokeStyle='#4e5f74';tCtx.lineWidth=3;tCtx.strokeRect(tx,ty,tw,th);
+  // gauge lines
+  for(let i=1;i<4;i++){tCtx.strokeStyle='rgba(255,255,255,0.15)';tCtx.lineWidth=1;tCtx.beginPath();tCtx.moveTo(tx,ty+th*i/4);tCtx.lineTo(tx+tw,ty+th*i/4);tCtx.stroke();}
+  // label
+  tCtx.fillStyle='white';tCtx.font='bold 16px Nunito';tCtx.textAlign='center';
+  tCtx.fillText(`${Math.floor(fuelS.filled*100)}%`,cw/2,ty+th+28);
+  // hold button
+  const bx=cw/2-55,by=ch*0.84,bw=110,bh=38;
+  tCtx.fillStyle=fuelS.pouring?'#ff6b35':'#2e3a4e';tCtx.beginPath();tCtx.roundRect(bx,by,bw,bh,8);tCtx.fill();
+  tCtx.fillStyle='white';tCtx.font='bold 13px Nunito';tCtx.fillText(fuelS.pouring?'주입 중...':'길게 누르기',cw/2,by+bh/2+5);
+}
+tCanvas.addEventListener('pointerdown',e=>{
+  if(currentTaskType!=='fuel')return;
+  fuelS.pouring=true;
+  function fill(){
+    if(!fuelS.pouring||currentTaskType!=='fuel')return;
+    fuelS.filled=Math.min(1,fuelS.filled+0.012);
+    drawFuel();
+    if(fuelS.filled>=1){snd('task');setTimeout(completeCurrentTask,400);return;}
+    requestAnimationFrame(fill);
+  }
+  fill();
+  e.preventDefault();
+},{passive:false});
+tCanvas.addEventListener('pointerup',e=>{fuelS.pouring=false;drawFuel();e.preventDefault();},{passive:false});
+
+// --- Reactor hand ---
+let reactorS={left:false,right:false,both:0,needed:3};
+function initReactor(){
+  reactorS={left:false,right:false,both:0,needed:3};
+  drawReactor();
+}
+function drawReactor(){
+  const cw=tCanvas.width,ch=tCanvas.height;
+  tCtx.fillStyle='#080f0a';tCtx.fillRect(0,0,cw,ch);
+  tCtx.fillStyle='white';tCtx.font='bold 14px Nunito';tCtx.textAlign='center';
+  tCtx.fillText('☢️ 원자로 핸드프린트',cw/2,24);
+  // panels
+  const pad=(w,lbl,active)=>{
+    tCtx.fillStyle=active?'rgba(46,213,115,0.3)':'rgba(255,71,87,0.15)';
+    tCtx.strokeStyle=active?'#2ed573':'#ff4757';tCtx.lineWidth=3;
+    tCtx.beginPath();tCtx.roundRect(w.x,w.y,w.w,w.h,12);tCtx.fill();tCtx.stroke();
+    tCtx.fillStyle=active?'#2ed573':'#ff4757';tCtx.font='bold 13px Nunito';tCtx.textAlign='center';
+    tCtx.fillText(lbl,w.x+w.w/2,w.y+w.h/2-8);
+    tCtx.font='24px sans-serif';tCtx.fillText('🖐',w.x+w.w/2,w.y+w.h/2+20);
+  };
+  pad({x:cw*0.1,y:ch*0.25,w:cw*0.35,h:ch*0.45},'왼손',reactorS.left);
+  pad({x:cw*0.55,y:ch*0.25,w:cw*0.35,h:ch*0.45},'오른손',reactorS.right);
+  // progress
+  tCtx.fillStyle='rgba(0,0,0,0.5)';tCtx.fillRect(cw*0.1,ch*0.8,cw*0.8,14);
+  tCtx.fillStyle='#2ed573';tCtx.fillRect(cw*0.1,ch*0.8,cw*0.8*(reactorS.both/reactorS.needed),14);
+  tCtx.strokeStyle='#fff';tCtx.lineWidth=1.5;tCtx.strokeRect(cw*0.1,ch*0.8,cw*0.8,14);
+  tCtx.fillStyle='rgba(255,255,255,0.5)';tCtx.font='11px Nunito';tCtx.fillText('두 손을 동시에 올리세요',cw/2,ch*0.95);
+}
+function reactorTouch(e){
+  if(currentTaskType!=='reactor')return;
+  const r=tCanvas.getBoundingClientRect(),cw=tCanvas.width,ch=tCanvas.height;
+  let L=false,R=false;
+  for(let i=0;i<e.touches.length;i++){
+    const tx=(e.touches[i].clientX-r.left)/cw;
+    if(tx<0.5)L=true;else R=true;
+  }
+  if(!e.touches){const mx=(e.clientX-r.left)/cw;if(mx<0.5)L=true;else R=true;}
+  reactorS.left=L;reactorS.right=R;
+  if(L&&R){reactorS.both++;if(reactorS.both>=reactorS.needed){snd('task');setTimeout(completeCurrentTask,400);}}
+  drawReactor();e.preventDefault();
+}
+tCanvas.addEventListener('touchstart',reactorTouch,{passive:false});
+tCanvas.addEventListener('touchmove',reactorTouch,{passive:false});
+tCanvas.addEventListener('touchend',e=>{if(currentTaskType==='reactor'){reactorS.left=false;reactorS.right=false;drawReactor();}e.preventDefault();},{passive:false});
+tCanvas.addEventListener('pointerdown',e=>{if(currentTaskType==='reactor'){const r=tCanvas.getBoundingClientRect();const mx=(e.clientX-r.left)/tCanvas.width;if(mx<0.5)reactorS.left=true;else reactorS.right=true;if(reactorS.left&&reactorS.right){reactorS.both++;if(reactorS.both>=reactorS.needed){snd('task');setTimeout(completeCurrentTask,400);}}drawReactor();}e.preventDefault();},{passive:false});
+
+function openTask(taskId,taskType){
+  currentTaskId=taskId; currentTaskType=taskType;
+  document.getElementById('minigame-popup').style.display='block';
+  resize();
+  if(taskType==='wires'||taskType==='wires_sab'){initWires();drawWires();}
+  else if(taskType==='cardswipe')initCardSwipe();
+  else if(taskType==='asteroids')initAsteroids();
+  else if(taskType==='stars')initStars();
+  else if(taskType==='fuel')initFuel();
+  else if(taskType==='reactor')initReactor();
+}
+
+function performTask(){
+  const me=GS.players[myId];if(!me||me.isDead||me.inVent!==-1)return;
+  for(const t of MAP.tasks){
+    if(me.x>t.x&&me.x<t.x+t.w&&me.y>t.y&&me.y<t.y+t.h){
+      if(t.isSab){
+        if(GS.sabActive!==t.sabType)return;
+        openTask(t.id,'wires_sab');
+      } else {
+        if(GS.imposters.includes(myId)||myLocalTasks.includes(t.id))return;
+        openTask(t.id,t.type);
+      }
+      break;
+    }
+  }
+}
+
+function completeCurrentTask(){
+  if(currentTaskId===null)return;
+  const t=MAP.tasks.find(z=>z.id===currentTaskId);
+  if(!t)return;
+  if(t.isSab){
+    if(isHost){GS.sabActive=null;}else hostConn.send({type:'action',action:'fix_sab',extra:{sabType:t.sabType}});
+    GS.sabActive=null;bcastSnd('task');
+  } else {
+    myLocalTasks.push(currentTaskId);
+    if(t.visual){GS.visualTasks[currentTaskId]=GS.visualTasks[currentTaskId]||[];GS.visualTasks[currentTaskId].push(myId);}
+    if(isHost){GS.tasksCompleted++;checkWin();snd('task');}
+    else hostConn.send({type:'task_done'});
+  }
+  closeMinigame();
+}
+function closeMinigame(){
+  document.getElementById('minigame-popup').style.display='none';
+  currentTaskId=null;currentTaskType=null;
+  if(astS.animId){cancelAnimationFrame(astS.animId);astS.animId=null;}
+  if(cardAnimId){cancelAnimationFrame(cardAnimId);cardAnimId=null;}
+}
+
+// ═══════════════════════════════
+//  VOTING UI
+// ═══════════════════════════════
+let voteSecsLeft=VOTE_SECS;
+function showVoting(){
+  document.getElementById('voting-ui').style.display='flex';
+  myVote=null;voteSecsLeft=VOTE_SECS;
+  buildVoteGrid();
+  if(votingTimerInt)clearInterval(votingTimerInt);
+  votingTimerInt=setInterval(()=>{
+    voteSecsLeft--;
+    document.getElementById('voting-timer').textContent=Math.max(0,voteSecsLeft);
+    if(voteSecsLeft<=0){clearInterval(votingTimerInt);if(isHost)tallyVotes();}
+  },1000);
+}
+function buildVoteGrid(){
+  const grid=document.getElementById('vote-grid');grid.innerHTML='';
+  for(const id in GS.players){
+    const p=GS.players[id];
+    const card=document.createElement('div');card.className='vote-card'+(p.isDead?' dead':'');
+    const tv=GS.tallies[id]||0;
+    card.innerHTML=`<div style="display:flex;align-items:center;gap:5px"><span>${p.hat||'👤'}</span><div style="width:12px;height:12px;border-radius:3px;background:${p.color}"></div><span>${esc(p.name)}${id===myId?' (나)':''}</span></div><span style="color:#ffa502;font-size:11px">${'▲'.repeat(tv)}</span>`;
+    if(!p.isDead&&!GS.players[myId]?.isDead){
+      card.onclick=()=>{document.querySelectorAll('.vote-card').forEach(c=>c.classList.remove('selected'));card.classList.add('selected');castVote(id);};
+    }
+    grid.appendChild(card);
+  }
+}
+function castVote(tid){
+  if(myVote||GS.players[myId]?.isDead)return;
+  myVote=tid;isHost?handleVote(myId,tid):hostConn.send({type:'vote',tid});
+}
+
+// ═══════════════════════════════
+//  CUTSCENE
+// ═══════════════════════════════
+function triggerCutscene(by,vcol){
+  snd('report');
+  document.getElementById('cutscene-text').textContent='🚨 DEAD BODY REPORTED';
+  document.getElementById('cutscene-sub').textContent=by?`${by}이(가) 시체를 발견했습니다`:'비상 회의 소집';
+  const el=document.getElementById('cutscene-overlay');el.style.display='flex';
+  setTimeout(()=>el.style.display='none',2800);
+}
+function bcastCutscene(by,vcol){triggerCutscene(by,vcol);sendAll({type:'cutscene',by,vcol});}
+
+// ═══════════════════════════════
+//  GAME OVER
+// ═══════════════════════════════
+function showGameOver(){
+  if(votingTimerInt)clearInterval(votingTimerInt);
+  document.getElementById('game-over-ui').style.display='flex';
+  document.getElementById('voting-ui').style.display='none';
+  document.getElementById('winner-text').innerText=GS.winner;
+  document.getElementById('winner-sub').innerText=GS.winnerSub||'';
+  const list=document.getElementById('result-list');list.innerHTML='';
+  for(const id in GS.players){
+    const p=GS.players[id],isImp=GS.imposters.includes(id);
+    const d=document.createElement('div');
+    d.className='result-player'+(isImp?' result-imposter':'')+(p.isDead?' result-dead':'');
+    const roleLabel={imposter:'임포스터',engineer:'엔지니어',scientist:'사이언티스트',crewmate:'크루원'}[GS.roles[id]]||'크루원';
+    d.innerHTML=`<span>${p.hat||'👤'}</span><div style="width:12px;height:12px;border-radius:3px;background:${p.color}"></div><strong>${esc(p.name)}</strong><span style="font-size:11px;color:${isImp?'#ff4757':'#2ed573'}">${roleLabel}</span>`;
+    list.appendChild(d);
+  }
+  closeMinigame();
+}
+function restartToLobby(){
+  document.getElementById('game-over-ui').style.display='none';
+  GS.phase='Lobby';GS.imposters=[];GS.corpses=[];GS.tasksCompleted=0;GS.sabActive=null;
+  myLocalTasks=[];myVote=null;
+}
+
+// ═══════════════════════════════
+//  SAB MENU
+// ═══════════════════════════════
+function openSabMenu(){if(!GS.imposters.includes(myId))return;sabMenuOpen=!sabMenuOpen;document.getElementById('sabotage-menu').style.display=sabMenuOpen?'block':'none';}
+function closeSabMenu(){sabMenuOpen=false;document.getElementById('sabotage-menu').style.display='none';}
+function sendAction(a,extra){isHost?processAction(myId,a,extra):hostConn?.send({type:'action',action:a,extra});}
+
+// ═══════════════════════════════
+//  INPUT
+// ═══════════════════════════════
+window.addEventListener('keydown',e=>{
+  const activeEl=document.activeElement?.id||'';
+  if(['passive-chat-input','vote-chat-input','nickname','room-code','dev-pw'].includes(activeEl))return;
+  const k=e.key.toLowerCase();if(keys.hasOwnProperty(k))keys[k]=true;
+  if(GS.phase!=='Playing'||!myId||!GS.players[myId]||GS.players[myId].isDead)return;
+  if(k===' '){e.preventDefault();sendAction('kill');}
+  if(k==='r')sendAction('report');
+  if(k==='e')performTask();
+  if(k==='v')toggleVent();
+  if(k==='g')openSabMenu();
+  if(k==='q')sendAction('emergency');
+});
+window.addEventListener('keyup',e=>{if(keys.hasOwnProperty(e.key.toLowerCase()))keys[e.key.toLowerCase()]=false;});
+
+const jm=nipplejs.create({zone:document.getElementById('joystick-zone'),mode:'dynamic',color:'rgba(255,255,255,0.4)',size:110});
+jm.on('move',(e,d)=>{joyVector.x=Math.cos(d.angle.radian);joyVector.y=-Math.sin(d.angle.radian);});
+jm.on('end',()=>{joyVector={x:0,y:0};});
+
+// ═══════════════════════════════
+//  MINIMAP
+// ═══════════════════════════════
+function drawMinimap(me){
+  const S=130,ratio=S/WORLD;
+  mCtx.clearRect(0,0,S,S);
+  mCtx.fillStyle='#08090e';mCtx.fillRect(0,0,S,S);
+  mCtx.fillStyle='#232c3a';MAP.walls.forEach(w=>mCtx.fillRect(w.x*ratio,w.y*ratio,Math.max(1,w.w*ratio),Math.max(1,w.h*ratio)));
+  MAP.tasks.forEach(t=>{
+    const active=t.isSab&&GS.sabActive===t.sabType;
+    mCtx.fillStyle=active?(Date.now()%500<250?'#ff4757':'#300'):'#2a3540';
+    mCtx.fillRect(t.x*ratio,t.y*ratio,t.w*ratio,t.h*ratio);
+  });
+  mCtx.fillStyle='#3d4a5c';MAP.vents.forEach(v=>mCtx.fillRect(v.x*ratio-2,v.y*ratio-2,4,4));
+  const eb=MAP.emergency;
+  mCtx.fillStyle='#c0392b';mCtx.fillRect(eb.x*ratio,eb.y*ratio,eb.w*ratio,eb.h*ratio);
+  const isImp=GS.imposters.includes(myId);
+  for(const id in GS.players){
+    if(id===myId)continue;
+    const p=GS.players[id];if(p.isDead||p.inVent!==-1)continue;
+    const visible=isImp||Math.hypot(me.x-p.x,me.y-p.y)<(GS.sabActive==='lights'?130:WORLD);
+    if(!visible)continue;
+    mCtx.fillStyle=p.color;mCtx.beginPath();mCtx.arc(p.x*ratio,p.y*ratio,2.5,0,Math.PI*2);mCtx.fill();
+  }
+  GS.corpses.forEach(c=>{mCtx.fillStyle='rgba(255,71,87,0.7)';mCtx.beginPath();mCtx.arc(c.x*ratio,c.y*ratio,2,0,Math.PI*2);mCtx.fill();});
+  mCtx.fillStyle='#2ed573';mCtx.strokeStyle='white';mCtx.lineWidth=0.5;
+  mCtx.beginPath();mCtx.arc(me.x*ratio,me.y*ratio,3.5,0,Math.PI*2);mCtx.fill();mCtx.stroke();
+}
+
+// ═══════════════════════════════
+//  HUD
+// ═══════════════════════════════
+function updateHUD(){
+  const me=GS.players[myId];
+  document.getElementById('player-count').innerText=`${Object.keys(GS.players).length}명`;
+  document.getElementById('map-label').innerText=MAP.name||'';
+  const sabEl=document.getElementById('sabotage-alert');
+  if(GS.sabActive){
+    const lbl={lights:'⚡ 정전!',reactor:`☢️ 원자로 위험! (${Math.ceil(GS.sabTimer)}s)`,o2:`💨 산소부족! (${Math.ceil(GS.sabTimer)}s)`};
+    sabEl.textContent=lbl[GS.sabActive]||'⚠️ 사보타지!';sabEl.style.display='block';
+  } else sabEl.style.display='none';
+
+  if(GS.phase==='Lobby'){
+    const panel=document.getElementById('host-start-panel');
+    if(panel){panel.style.display=isHost?'block':'none'; if(isHost)updateImpSelector();}
+    document.getElementById('action-container').style.display='none';
+    document.getElementById('task-bar-container').style.display='none';
+    document.getElementById('role-banner').textContent='🏠 로비';
+    document.getElementById('kill-cd-bar').style.display='none';
+  } else if(GS.phase==='Playing'&&me){
+    document.getElementById('host-start-btn').style.display='none';
+    document.getElementById('task-bar-container').style.display='block';
+    document.getElementById('action-container').style.display='flex';
+    if(GS.tasksTotal>0)document.getElementById('task-bar-fill').style.width=`${(GS.tasksCompleted/GS.tasksTotal)*100}%`;
+    const isImp=GS.imposters.includes(myId);
+    const role=GS.roles[myId]||'crewmate';
+    const roleLabels={imposter:'🔴 임포스터',engineer:'🔵 엔지니어',scientist:'🟣 사이언티스트',crewmate:'🟢 크루원'};
+    document.getElementById('role-banner').innerHTML=`<span style="color:${isImp?'#ff4757':role==='engineer'?'#5352ed':role==='scientist'?'#a55eea':'#2ed573'}">${roleLabels[role]||'🟢 크루원'}</span>`;
+    if(!me.isDead){
+      document.getElementById('report-btn').style.display=(me.inVent===-1)?'flex':'none';
+      document.getElementById('emergency-btn').style.display=(me.inVent===-1)?'flex':'none';
+      if(isImp){
+        document.getElementById('kill-btn').style.display=(me.inVent===-1)?'flex':'none';
+        document.getElementById('sabotage-btn').style.display='flex';
+        document.getElementById('vent-btn').style.display='flex';
+        document.getElementById('task-btn').style.display='none';
+        const kcd=GS.killCDs[myId]||0;
+        if(kcd>0){document.getElementById('kill-btn').classList.add('disabled');document.getElementById('kill-btn').innerHTML=`🔪<br>${Math.ceil(kcd)}s`;document.getElementById('kill-cd-bar').style.display='block';document.getElementById('kill-cd-fill').style.width=`${(kcd/KILL_CD_TIME)*100}%`;}
+        else{document.getElementById('kill-btn').classList.remove('disabled');document.getElementById('kill-btn').innerHTML='🔪<br>KILL<br>[SPC]';document.getElementById('kill-cd-bar').style.display='none';}
+        const scd=GS.sabCD;
+        if(scd>0||GS.sabActive){document.getElementById('sabotage-btn').classList.add('disabled');document.getElementById('sabotage-btn').innerHTML=`💡<br>${Math.ceil(scd)}s`;}
+        else{document.getElementById('sabotage-btn').classList.remove('disabled');document.getElementById('sabotage-btn').innerHTML='💡<br>SAB<br>[G]';}
+      } else {
+        document.getElementById('kill-btn').style.display='none';
+        document.getElementById('sabotage-btn').style.display='none';
+        document.getElementById('vent-btn').style.display=(role==='engineer')?'flex':'none';
+        document.getElementById('task-btn').style.display='flex';
+        document.getElementById('kill-cd-bar').style.display='none';
+      }
+    } else {
+      document.getElementById('action-container').style.display='none';
+    }
+  } else {
+    document.getElementById('action-container').style.display='none';
+  }
+  if(GS.phase==='Voting')buildVoteGrid();
+}
+
+// ═══════════════════════════════
+//  DRAW WORLD
+// ═══════════════════════════════
+let camera={x:0,y:0};
+let animT=0,lastT=Date.now();
+
+function getVision(){
+  if(GS.sabActive==='lights'&&!GS.imposters.includes(myId))return 105;
+  return 390;
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#0b0e14';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.save();ctx.translate(-camera.x,-camera.y);
+  // map bg
+  ctx.fillStyle=MAP.color||'#14181f';ctx.fillRect(0,0,WORLD,WORLD);
+  // grid
+  ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.lineWidth=1;
+  for(let x=0;x<WORLD;x+=120){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,WORLD);ctx.stroke();}
+  for(let y=0;y<WORLD;y+=120){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WORLD,y);ctx.stroke();}
+  // rooms
+  MAP.rooms?.forEach(r=>{
+    ctx.fillStyle='rgba(255,255,255,0.012)';ctx.fillRect(r.x,r.y,r.w,r.h);
+    ctx.strokeStyle='rgba(255,255,255,0.055)';ctx.lineWidth=1;ctx.strokeRect(r.x,r.y,r.w,r.h);
+    ctx.fillStyle='rgba(255,255,255,0.14)';ctx.font='bold 12px Nunito';ctx.textAlign='center';
+    ctx.fillText(r.name,r.x+r.w/2,r.y+18);
+  });
+  // task zones
+  MAP.tasks.forEach(t=>{
+    const isSabActive=t.isSab&&GS.sabActive===t.sabType;
+    const isMyTask=!t.isSab&&!myLocalTasks.includes(t.id)&&!GS.imposters.includes(myId);
+    const pulse=4*Math.sin(Date.now()/200);
+    ctx.fillStyle=isSabActive?`rgba(255,${70+70*Math.abs(Math.sin(Date.now()/150))},50,0.32)`:t.color;
+    ctx.fillRect(t.x-4,t.y-4,t.w+8,t.h+8);
+    ctx.strokeStyle=isSabActive?'#ff4757':isMyTask?'rgba(46,213,115,0.4)':'rgba(255,255,255,0.1)';
+    ctx.lineWidth=isSabActive?2.5:1;ctx.strokeRect(t.x,t.y,t.w,t.h);
+    if(!t.isSab||isSabActive){
+      ctx.fillStyle=isSabActive?'#ff4757':isMyTask?'rgba(46,213,115,0.75)':'rgba(255,255,255,0.4)';
+      ctx.font='bold 11px Nunito';ctx.textAlign='center';ctx.fillText(t.name,t.x+t.w/2,t.y+t.h/2+4);
+    }
+    // visual task indicator
+    if(t.visual&&GS.visualTasks[t.id]?.length>0){
+      ctx.fillStyle='rgba(255,165,2,0.7)';ctx.font='10px Nunito';ctx.fillText('★VISUAL',t.x+t.w/2,t.y-5);
+    }
+  });
+  // emergency button
+  const eb=MAP.emergency;
+  const ecd=GS.emergCDs[myId]||0;
+  ctx.fillStyle=ecd>0?'#1a1205':'#8b0000';
+  ctx.beginPath();ctx.arc(eb.x+eb.w/2,eb.y+eb.h/2,eb.w/2,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle=ecd>0?'#6b4c00':'#ff4444';ctx.lineWidth=4;ctx.stroke();
+  const gl=ctx.createRadialGradient(eb.x+eb.w/2,eb.y+eb.h/2,5,eb.x+eb.w/2,eb.y+eb.h/2,eb.w/2);
+  gl.addColorStop(0,ecd>0?'rgba(180,120,0,0.3)':'rgba(255,100,100,0.4)');gl.addColorStop(1,'transparent');
+  ctx.fillStyle=gl;ctx.beginPath();ctx.arc(eb.x+eb.w/2,eb.y+eb.h/2,eb.w/2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='white';ctx.font='bold 10px Nunito';ctx.textAlign='center';
+  ctx.fillText('BUTTON',eb.x+eb.w/2,eb.y+eb.h/2+4);
+  // vents
+  MAP.vents.forEach(v=>{
+    ctx.fillStyle='#1a202e';ctx.beginPath();ctx.ellipse(v.x,v.y,32,22,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#2e3a4e';ctx.lineWidth=2;ctx.stroke();
+    ctx.strokeStyle='#242e3e';ctx.lineWidth=1.5;
+    for(let i=-18;i<=18;i+=6){ctx.beginPath();ctx.moveTo(v.x+i,v.y-14);ctx.lineTo(v.x+i,v.y+14);ctx.stroke();}
+  });
+  // walls
+  MAP.walls.forEach(w=>{
+    ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(w.x+4,w.y+4,w.w,w.h);
+    const gr=ctx.createLinearGradient(w.x,w.y,w.x,w.y+w.h);
+    gr.addColorStop(0,'#3d4a5c');gr.addColorStop(1,'#242d3c');
+    ctx.fillStyle=gr;ctx.fillRect(w.x,w.y,w.w,w.h);
+    ctx.fillStyle='#4d5f74';ctx.fillRect(w.x,w.y,w.w,7);
+    ctx.strokeStyle='#5a6f88';ctx.lineWidth=1.5;ctx.strokeRect(w.x,w.y,w.w,w.h);
+  });
+  // corpses
+  GS.corpses.forEach(c=>{
+    ctx.save();ctx.translate(c.x,c.y);
+    ctx.fillStyle='rgba(255,0,0,0.12)';ctx.beginPath();ctx.ellipse(0,12,28,10,0,0,Math.PI*2);ctx.fill();
+    drawChar(ctx,0,0,c.color,c.hat||'',-1,true);ctx.restore();
+  });
+  ctx.restore();
+
+  // --- players ---
+  const myP=GS.players[myId];
+  const myIsImp=GS.imposters.includes(myId);
+  // Update sprite walk animation (10 frames, ~8fps walk cycle)
+  animT+=0.15;
+  // Per-player: store individual walk timer so each moves independently
+  for(const [id,p] of Object.entries(GS.players)){
+    if(p.isDead||p.inVent!==-1)continue;
+    if(GS.phase==='Playing'&&myP&&id!==myId){
+      if(Math.hypot(myP.x-p.x,myP.y-p.y)>getVision()&&!myIsImp)continue;
+    }
+    const rx=p.x-camera.x,ry=p.y-camera.y;
+    // Pick sprite frame for this player
+    if(p.isMoving){
+      p._walkT=(p._walkT||0)+0.22;
+      currentSpriteFrame=1+Math.floor(p._walkT)%9; // frames 1-9 are walk
+    } else {
+      p._walkT=0;
+      currentSpriteFrame=0; // frame 0 = idle
+    }
+    ctx.save();
+    const impKnown=GS.imposters.includes(id)&&myIsImp;
+    // name tag
+    ctx.font='bold 12px Nunito';ctx.textAlign='center';
+    ctx.shadowColor='rgba(0,0,0,0.95)';ctx.shadowBlur=5;
+    ctx.fillStyle=impKnown?'#ff6b6b':'white';
+    ctx.fillText(p.name+(id===myId?' ◀':''),rx,ry-38);
+    ctx.shadowBlur=0;
+    // imposter red glow behind known imposter
+    if(impKnown){
+      ctx.fillStyle='rgba(255,71,87,0.12)';ctx.beginPath();ctx.arc(rx,ry,36,0,Math.PI*2);ctx.fill();
+    }
+    // vent glow
+    if(p.inVent!==-1){
+      ctx.fillStyle='rgba(116,125,140,0.3)';ctx.beginPath();ctx.arc(rx,ry,30,0,Math.PI*2);ctx.fill();
+    }
+    drawChar(ctx,rx,ry,p.color,p.hat,p.facing,false,1.0);
+    ctx.restore();
+  }
+  // self ghost if dead
+  if(myP?.isDead&&myP.inVent===-1){
+    currentSpriteFrame=0;
+    drawChar(ctx,myP.x-camera.x,myP.y-camera.y,myP.color,myP.hat,myP.facing,true);
+  }
+  // vision mask
+  if(GS.phase==='Playing'&&myP&&!myP.isDead){
+    const px=myP.x-camera.x,py=myP.y-camera.y;
+    const vr=getVision();
+    const dark=GS.sabActive==='lights'?0.97:0.70;
+    ctx.save();ctx.fillStyle=`rgba(0,0,0,${dark})`;
+    ctx.beginPath();ctx.rect(0,0,canvas.width,canvas.height);
+    ctx.arc(px,py,vr,0,Math.PI*2,true);ctx.fill('evenodd');ctx.restore();
+  }
+  if(myP)drawMinimap(myP);
+}
+
+// ═══════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════
+function mainLoop(){
+  const now=Date.now(),dt=(now-lastT)/1000;lastT=now;
+  if(isHost){
+    if(GS.phase==='Playing'){
+      GS.sabCD=Math.max(0,GS.sabCD-dt);
+      if(GS.sabActive&&GS.sabTimer>0){
+        GS.sabTimer-=dt;
+        if(GS.sabTimer<=0){
+          if(GS.sabActive==='reactor'||GS.sabActive==='o2')endGame('IMPOSTOR WIN 💀','사보타지 복구 실패!');
+          GS.sabActive=null;
+        }
+      }
+      for(const id in GS.killCDs)if(GS.killCDs[id]>0)GS.killCDs[id]=Math.max(0,GS.killCDs[id]-dt);
+      for(const id in GS.emergCDs)if(GS.emergCDs[id]>0)GS.emergCDs[id]=Math.max(0,GS.emergCDs[id]-dt);
+    }
+    handleMove(myId,keys,joyVector);
+    sendAll({type:'state',gs:GS});
+  } else if(hostConn?.open){
+    hostConn.send({type:'input',keys,vec:joyVector});
+  }
+  const me=GS.players[myId];
+  if(me){camera.x+=(me.x-canvas.width/2-camera.x)*0.1;camera.y+=(me.y-canvas.height/2-camera.y)*0.1;}
+  updateHUD();draw();
+  if(devMode)updateDevInfo();
+  requestAnimationFrame(mainLoop);
+}
+function startLoop(){lastT=Date.now();requestAnimationFrame(mainLoop);}
+
+// ═══════════════════════════════
+//  DEVELOPER MODE
+// ═══════════════════════════════
+function promptDevMode(){
+  const pw=prompt('🛠 개발자 모드 비밀번호:');
+  if(pw===DEV_PASSWORD){openDevMode();}
+  else if(pw!==null){alert('❌ 비밀번호가 틀렸습니다.');}
+}
+function openDevMode(){
+  devMode=true;
+  document.getElementById('menu-ui').style.display='none';
+  document.getElementById('dev-ui').style.display='flex';
+  // init dev game state
+  myId='DEV-HOST';isHost=true;
+  const sp=MAP.spawn||{x:1480,y:1380};
+  GS.players[myId]={x:sp.x,y:sp.y,color:myColor,name:'DEV',hat:myHat,isDead:false,facing:1,isMoving:false,inVent:-1};
+  GS.roles[myId]='crewmate';
+  document.getElementById('game-ui').style.display='block';
+  document.getElementById('minimap-container').style.display='block';
+  document.getElementById('joystick-zone').style.display='block';
+  document.getElementById('passive-chat').style.display='flex';
+  document.getElementById('map-label').style.display='block';
+  document.getElementById('room-info').innerText='🛠 개발자 모드';
+  if(aCtx.state==='suspended')aCtx.resume();
+  if(!lastT||lastT===0)startLoop();
+  devLog('개발자 모드 시작');
+}
+function closeDevMode(){
+  document.getElementById('dev-ui').style.display='none';
+  document.getElementById('menu-ui').style.display='flex';
+  document.getElementById('game-ui').style.display='none';
+  document.getElementById('minimap-container').style.display='none';
+  document.getElementById('joystick-zone').style.display='none';
+  document.getElementById('passive-chat').style.display='none';
+  document.getElementById('map-label').style.display='none';
+  devMode=false;myId=null;isHost=false;
+  GS={phase:'Lobby',mapId:'skeld',imposters:[],roles:{},players:{},corpses:[],tasksTotal:0,tasksCompleted:0,visualTasks:{},votes:{},tallies:{},winner:'',winnerSub:'',sabActive:null,sabTimer:0,sabCD:0,killCDs:{},emergCDs:{}};
+}
+function devSetMap(mapId){
+  currentMapId=mapId;MAP=MAPS[mapId];GS.mapId=mapId;
+  const sp=MAP.spawn||{x:1480,y:1380};
+  if(GS.players[myId])GS.players[myId].x=sp.x,GS.players[myId].y=sp.y;
+  devLog(`맵 변경: ${MAP.name}`);
+}
+function devSetRole(role){
+  if(!myId)return;
+  GS.roles[myId]=role;
+  if(role==='imposter'){
+    if(!GS.imposters.includes(myId))GS.imposters.push(myId);
+  } else {
+    GS.imposters=GS.imposters.filter(id=>id!==myId);
+  }
+  if(GS.phase!=='Playing'){
+    GS.phase='Playing';
+    // Init cooldowns so buttons work
+    GS.killCDs[myId]=0; GS.emergCDs[myId]=0;
+    GS.sabotageCooldown=0; GS.sabCD=0;
+  }
+  // Ensure tasks exist so task bar shows
+  const normalTasks=MAP.tasks.filter(t=>!t.isSab);
+  GS.tasksTotal=normalTasks.length;
+  GS.tasksCompleted=0;
+  myLocalTasks=[];
+  const roleLabels={crewmate:'크루원 🟢',engineer:'엔지니어 🔵',scientist:'사이언티스트 🟣',imposter:'임포스터 🔴'};
+  devLog(`역할 설정: ${roleLabels[role]||role}`);
+  // Hint
+  if(role==='crewmate'||role==='engineer'||role==='scientist'){
+    devLog('→ E키로 태스크, R로 신고, Q로 비상버튼');
+    if(role==='engineer') devLog('→ V키로 벤트 사용 가능');
+    if(role==='scientist') devLog('→ 사이언티스트: 생체정보 확인 가능');
+  } else {
+    devLog('→ SPACE로 킬, G로 사보타지, V로 벤트');
+  }
+}
+function devOpenTask(type){
+  if(!myId)return;
+  if(GS.phase!=='Playing')GS.phase='Playing';
+  currentTaskId=999;
+  openTask(999,type);
+  devLog(`태스크 열기: ${type}`);
+}
+function devSabotage(type){
+  GS.sabActive=type;GS.sabTimer=type==='lights'?45:60;
+  if(GS.phase!=='Playing')GS.phase='Playing';
+  snd('sabotage');devLog(`사보타지: ${type}`);
+}
+function devFixSab(){GS.sabActive=null;devLog('사보타지 복구');}
+function devTriggerMeeting(){
+  if(GS.phase!=='Playing')GS.phase='Playing';
+  startMeeting('개발자 테스트 회의');showVoting();devLog('긴급 회의 발동');
+}
+function devSpawnCorpse(){
+  const me=GS.players[myId];if(!me)return;
+  GS.corpses.push({x:me.x+80,y:me.y,color:'#ff4757',hat:'💀',name:'TestCorpse'});
+  devLog('시체 생성');
+}
+function devTeleport(){
+  const me=GS.players[myId];if(!me)return;
+  me.x=200+Math.random()*(WORLD-400);me.y=200+Math.random()*(WORLD-400);
+  devLog(`이동: (${Math.floor(me.x)},${Math.floor(me.y)})`);
+}
+function devGameOver(text){GS.phase='GameOver';GS.winner=text;GS.winnerSub='개발자 테스트';showGameOver();devLog(`게임 오버: ${text}`);}
+function devAddBot(){
+  botCounter++;
+  const bid='BOT-'+botCounter;
+  const sp=MAP.spawn||{x:1480,y:1380};
+  GS.players[bid]={x:sp.x+Math.random()*200-100,y:sp.y+Math.random()*200-100,color:COLORS[botCounter%COLORS.length],name:'봇'+botCounter,hat:'🤖',isDead:false,facing:1,isMoving:false,inVent:-1};
+  GS.roles[bid]='crewmate';
+  devLog(`봇 추가: ${bid}`);
+}
+function devLog(msg){
+  const box=document.getElementById('dev-log');if(!box)return;
+  const t=new Date().toLocaleTimeString('ko',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  box.textContent+=`[${t}] ${msg}\n`;box.scrollTop=box.scrollHeight;
+}
+function updateDevInfo(){
+  const box=document.getElementById('dev-info-box');if(!box)return;
+  const me=GS.players[myId];
+  box.innerHTML=`<div>맵: <strong>${MAP.name||currentMapId}</strong> | 페이즈: <strong>${GS.phase}</strong></div>
+<div>역할: <strong>${GS.roles[myId]||'없음'}</strong> | 임포: <strong>${GS.imposters.join(', ')||'없음'}</strong></div>
+<div>위치: <strong>${me?Math.floor(me.x)+','+Math.floor(me.y):'?'}</strong></div>
+<div>태스크: <strong>${GS.tasksCompleted}/${GS.tasksTotal}</strong> | 사보타지: <strong>${GS.sabActive||'없음'}</strong></div>
+<div>플레이어: <strong>${Object.keys(GS.players).length}</strong>명 | 시체: <strong>${GS.corpses.length}</strong>개</div>`;
+}
+
+// ─── boot ───
+buildCustomUI();
+</script>
+</body>
+</html>
