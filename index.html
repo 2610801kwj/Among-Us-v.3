@@ -540,9 +540,16 @@ window.addEventListener('resize',resize); resize();
 // ═══════════════════════════════
 //  AUDIO
 // ═══════════════════════════════
-const aCtx=new(window.AudioContext||window.webkitAudioContext)();
+let aCtx = null;
+try {
+  aCtx = new (window.AudioContext || window.webkitAudioContext)();
+} catch(e) {
+  console.log("오디오를 지원하지 않는 기기입니다.");
+}
+
 function snd(type){
   try{
+    if(!aCtx) return; // 오디오 기능이 없으면 그냥 넘어가게 방어!
     if(aCtx.state==='suspended')aCtx.resume();
     const o=aCtx.createOscillator(),g=aCtx.createGain();
     o.connect(g);g.connect(aCtx.destination);
@@ -1551,9 +1558,13 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('keyup',e=>{if(keys.hasOwnProperty(e.key.toLowerCase()))keys[e.key.toLowerCase()]=false;});
 
-const jm=nipplejs.create({zone:document.getElementById('joystick-zone'),mode:'dynamic',color:'rgba(255,255,255,0.4)',size:110});
+try{
+  const jm=nipplejs.create({zone:document.getElementById('joystick-zone'),mode:'dynamic',color:'rgba(255,255,255,0.4)',size:110});
 jm.on('move',(e,d)=>{joyVector.x=Math.cos(d.angle.radian);joyVector.y=-Math.sin(d.angle.radian);});
 jm.on('end',()=>{joyVector={x:0,y:0};});
+} catch(e) {
+  console.log("조이스틱 모듈 로드 지연됨");
+}
 
 // ═══════════════════════════════
 //  MINIMAP
