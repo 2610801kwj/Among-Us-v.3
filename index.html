@@ -975,7 +975,7 @@ function processAction(id,action,extra){
 
 function checkWin(){
   let crew=0,imps=0;
-  for(const id in GS.players){if(!GS.players[id].isDead)(GS.imposters.includes(id)?imps:crew)++;}
+  for(const id in GS.players){if(!GS.players[id].isDead) GS.imposters.includes(id) ? imps++ : crew++;}
   if(imps===0){endGame('CREWMATE WIN 🎉','임포스터 모두 제거!');return;}
   if(imps>=crew){endGame('IMPOSTOR WIN 💀','임포스터 승리!');return;}
   if(GS.tasksCompleted>=GS.tasksTotal&&GS.tasksTotal>0){endGame('TASK WIN ✅','모든 업무 완료!');return;}
